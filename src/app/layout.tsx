@@ -34,7 +34,7 @@ export default async function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${manrope.variable} h-full antialiased`}
+      className={`${manrope.variable} h-full font-sans antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans" style={bodyStyle}>
         {config ? (

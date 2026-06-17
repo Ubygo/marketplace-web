@@ -1,9 +1,10 @@
 import { TENANT_NOT_FOUND_REDIRECT_URL } from "@/constants/urls";
 import { type AppConfig, fetchAppConfig } from "@/lib/app-config";
 import { getTenantFromHeaders } from "@/lib/tenant";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
-export async function getTenantAppConfig(): Promise<AppConfig | null> {
+export const getTenantAppConfig = cache(async (): Promise<AppConfig | null> => {
   const slug = await getTenantFromHeaders();
   if (!slug) {
     return null;
@@ -14,4 +15,4 @@ export async function getTenantAppConfig(): Promise<AppConfig | null> {
   } catch {
     redirect(TENANT_NOT_FOUND_REDIRECT_URL);
   }
-}
+});
