@@ -11,7 +11,7 @@ export default function ContentContainer({
 }: ContentContainerProps) {
   return (
     <div
-      className={`mx-auto w-full px-6 sm:px-8 lg:px-10 ${className}`}
+      className={`mx-auto w-full px-4 sm:px-6 md:px-8 lg:px-10 ${className}`}
       style={{ maxWidth: MAX_CONTENT_WIDTH }}
     >
       {children}

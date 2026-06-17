@@ -1,14 +1,18 @@
-import CategoryBrowse from "@/components/categories/CategoryBrowse";
+import MarketplaceHome from "@/components/home/MarketplaceHome";
 import { fetchCategories } from "@/lib/categories";
+import { fetchVendorCards } from "@/lib/fetch-vendor-cards";
 import { getTenantAppConfig } from "@/lib/get-tenant-app-config";
 
 export default async function Home() {
   const config = await getTenantAppConfig();
   const categories = config ? await fetchCategories(config.tenantId) : [];
+  const vendors = config
+    ? await fetchVendorCards(config.tenantId, config.currency)
+    : [];
 
   return (
     <main className="flex min-h-full flex-1 flex-col">
-      <CategoryBrowse categories={categories} />
+      <MarketplaceHome categories={categories} vendors={vendors} />
     </main>
   );
 }
