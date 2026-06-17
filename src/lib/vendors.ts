@@ -52,3 +52,49 @@ export async function fetchVendors(
     (vendor) => vendor.visible !== false && vendor.status === "active",
   );
 }
+
+function normalizeVendorImages(vendor: Vendor): Vendor {
+  const images = vendor.images?.length
+    ? vendor.images
+    : (vendor.vendorImages ?? []);
+
+  return {
+    ...vendor,
+    images: [...images].sort((a, b) => a.order - b.order),
+    vendorImages: [...(vendor.vendorImages ?? images)].sort(
+      (a, b) => a.order - b.order,
+    ),
+  };
+}
+
+export async function fetchVendorById(
+  tenantId: string,
+  vendorId: string,
+): Promise<Vendor | null> {
+  const url = `${API_BASE_URL}/vendors/${vendorId}`;
+
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "X-Tenant-Id": tenantId,
+    },
+    next: { revalidate: 60 },
+  });
+
+  if (res.status === 404) {
+    return null;
+  }
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Failed to load vendor (${res.status}): ${body}`);
+  }
+
+  const vendor = (await res.json()) as Vendor;
+
+  if (vendor.visible === false || vendor.status !== "active") {
+    return null;
+  }
+
+  return normalizeVendorImages(vendor);
+}

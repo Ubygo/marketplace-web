@@ -1,13 +1,13 @@
 import AuthCard from "@/components/auth/AuthCard";
-import LoginForm from "@/components/auth/LoginForm";
+import RegisterForm from "@/components/auth/RegisterForm";
 import { Suspense } from "react";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <main className="flex min-h-full flex-1 items-center justify-center px-4 py-10">
-      <AuthCard title="Connexion">
+      <AuthCard title="Inscription">
         <Suspense fallback={<p className="text-center text-sm text-black/70">Chargement...</p>}>
-          <LoginForm />
+          <RegisterForm />
         </Suspense>
       </AuthCard>
     </main>

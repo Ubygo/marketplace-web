@@ -81,7 +81,7 @@ export default function HeaderDrawer({
                 item.mobileOnly ? "md:hidden" : ""
               }`}
               style={
-                item.href === "/login"
+                item.href === "/login" || item.href === "/parametres"
                   ? { backgroundColor: primaryColor, color: "#FFFFFF" }
                   : { color: TEXT_COLOR }
               }

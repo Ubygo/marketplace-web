@@ -1,4 +1,4 @@
-import AppHeader from "@/components/header/AppHeader";
+import TenantShell from "@/components/layout/TenantShell";
 import ContentContainer from "@/components/layout/ContentContainer";
 import { APP_BACKGROUND_COLOR } from "@/constants/theme";
 import { getTenantAppConfig } from "@/lib/get-tenant-app-config";
@@ -38,11 +38,22 @@ export default async function RootLayout({
     >
       <body className="flex min-h-full flex-col font-sans" style={bodyStyle}>
         {config ? (
-          <AppHeader branding={config.branding} name={config.name} />
-        ) : null}
-        <ContentContainer className="flex min-h-full flex-1 flex-col">
-          {children}
-        </ContentContainer>
+          <TenantShell
+            tenantId={config.tenantId}
+            slug={config.slug}
+            branding={config.branding}
+            name={config.name}
+            privacyPolicyUrl={config.privacyPolicyUrl}
+            cgvUrl={config.cgvUrl}
+            supportEmail={config.supportEmail}
+          >
+            {children}
+          </TenantShell>
+        ) : (
+          <ContentContainer className="flex min-h-full flex-1 flex-col">
+            {children}
+          </ContentContainer>
+        )}
       </body>
     </html>
   );

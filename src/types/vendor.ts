@@ -4,10 +4,32 @@ export interface VendorImage {
   order: number;
 }
 
+export interface VendorLocation {
+  street?: string;
+  city?: string;
+  zipcode?: string;
+  country?: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface VendorAvailabilitySlot {
+  weekDay: number;
+  startTime: string;
+  endTime: string;
+  active: boolean;
+}
+
+export interface VendorAvailability {
+  timezone: string;
+  slots: VendorAvailabilitySlot[];
+}
+
 export interface Vendor {
   id: string;
   name: string;
   description?: string;
+  phoneNumber?: string;
   photo?: string | null;
   averageRating?: number | null;
   rating?: number | null;
@@ -15,6 +37,8 @@ export interface Vendor {
   ratingCount?: number | null;
   vendorImages: VendorImage[];
   images: VendorImage[];
+  location?: VendorLocation;
+  availability?: VendorAvailability;
   visible: boolean;
   status: "active" | "inactive";
 }
