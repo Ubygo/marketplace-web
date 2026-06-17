@@ -19,7 +19,8 @@ export function extractTenantFromHost(host: string): string | null {
   }
 
   const parts = hostname.split(".");
-  if (parts.length < 2) {
+  // tenant.domain.tld — ignore apex (domain.tld) and bare hostnames
+  if (parts.length < 3) {
     return null;
   }
 
