@@ -1,5 +1,6 @@
 "use client";
 
+import AppFooter from "@/components/layout/AppFooter";
 import AppHeader from "@/components/header/AppHeader";
 import ContentContainer from "@/components/layout/ContentContainer";
 import SearchResults from "@/components/search/SearchResults";
@@ -54,6 +55,7 @@ export default function TenantShell({
           <ContentContainer className="flex min-h-full flex-1 flex-col">
             <SearchAwareContent>{children}</SearchAwareContent>
           </ContentContainer>
+          <AppFooter branding={branding} name={name} />
         </SearchProvider>
       </AuthProvider>
     </TenantProvider>
