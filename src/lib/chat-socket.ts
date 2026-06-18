@@ -48,7 +48,7 @@ export function initChatSocket(jwtToken: string): Socket | null {
     return null;
   }
 
-  if (socket?.connected && lastToken === jwtToken) {
+  if (socket && lastToken === jwtToken && !socket.disconnected) {
     return socket;
   }
 
@@ -74,8 +74,21 @@ export function initChatSocket(jwtToken: string): Socket | null {
 }
 
 export function joinConversation(conversationId: string): void {
-  if (!socket?.connected) return;
+  if (!socket?.connected) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[chat] join_conversation ignoré: socket non connecté",
+        conversationId,
+      );
+    }
+    return;
+  }
+
   socket.emit("join_conversation", { conversationId });
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[chat] join_conversation", conversationId);
+  }
 }
 
 export function leaveConversation(conversationId: string): void {

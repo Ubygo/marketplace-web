@@ -257,6 +257,7 @@ export default function MessagesPage({
           error={error}
           selectedConversationId={selectedConversationId}
           chatSocket={chatSocket}
+          socketConnected={chatSocket.isConnected}
           onSelectConversation={handleSelectConversation}
           onConversationUpdated={handleConversationUpdated}
         />
@@ -269,6 +270,7 @@ export default function MessagesPage({
               key={selectedConversationId}
               conversationId={selectedConversationId}
               chatSocket={chatSocket}
+              socketConnected={chatSocket.isConnected}
               variant="fullscreen"
               onBack={handleDeselectConversation}
               onConversationUpdated={handleConversationUpdated}

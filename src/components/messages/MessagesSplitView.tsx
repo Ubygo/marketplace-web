@@ -10,6 +10,7 @@ interface MessagesSplitViewProps {
   error: string | null;
   selectedConversationId?: string | null;
   chatSocket: ChatSocketApi;
+  socketConnected: boolean;
   onSelectConversation: (id: string) => void;
   onConversationUpdated: (update: ConversationListUpdate) => void;
 }
@@ -20,6 +21,7 @@ export default function MessagesSplitView({
   error,
   selectedConversationId = null,
   chatSocket,
+  socketConnected,
   onSelectConversation,
   onConversationUpdated,
 }: MessagesSplitViewProps) {
@@ -44,6 +46,7 @@ export default function MessagesSplitView({
             key={selectedConversationId}
             conversationId={selectedConversationId}
             chatSocket={chatSocket}
+            socketConnected={socketConnected}
             variant="embedded"
             onConversationUpdated={onConversationUpdated}
           />

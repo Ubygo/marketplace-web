@@ -9,8 +9,7 @@ import {
   getConversationIdFromMessage,
   normalizeIncomingMessage,
 } from "@/lib/chat-message";
-import { initChatSocket, isSocketConnected } from "@/lib/chat-socket";
-import { getAccessToken } from "@/lib/auth-session";
+import { isSocketConnected } from "@/lib/chat-socket";
 import { getConversationById } from "@/lib/conversations";
 import {
   getMessages,
@@ -28,6 +27,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface ConversationPanelProps {
   conversationId: string;
   chatSocket: ChatSocketApi;
+  socketConnected: boolean;
   onBack?: () => void;
   variant?: "embedded" | "fullscreen";
   onConversationUpdated?: (update: ConversationListUpdate) => void;
@@ -40,6 +40,7 @@ function getSenderName(sender: Message["sender"]): string {
 export default function ConversationPanel({
   conversationId,
   chatSocket,
+  socketConnected,
   onBack,
   variant = "embedded",
   onConversationUpdated,
@@ -58,6 +59,13 @@ export default function ConversationPanel({
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingEmitRef = useRef(false);
   const hideTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const conversationIdRef = useRef(conversationId);
+  const userRef = useRef(user);
+  const onConversationUpdatedRef = useRef(onConversationUpdated);
+
+  conversationIdRef.current = conversationId;
+  userRef.current = user;
+  onConversationUpdatedRef.current = onConversationUpdated;
 
   const markUnreadMessagesAsRead = useCallback(
     async (items: Message[]) => {
@@ -126,34 +134,41 @@ export default function ConversationPanel({
   }, [messages, isTyping]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !socketConnected) return;
 
-    const token = getAccessToken(slug);
-    if (!token) return;
-
-    const socket = initChatSocket(token);
+    const socket = chatSocket.getSocket();
     if (!socket) return;
 
     const unsubscribeNewMessage = chatSocket.onNewMessage((rawMessage) => {
+      if (process.env.NODE_ENV === "development") {
+        console.log("[chat] new_message raw:", rawMessage);
+      }
+
+      const activeConversationId = conversationIdRef.current;
       const messageConversationId = getConversationIdFromMessage(rawMessage);
-      if (messageConversationId && messageConversationId !== conversationId) {
+      if (
+        messageConversationId &&
+        messageConversationId !== activeConversationId
+      ) {
         return;
       }
 
       const message = normalizeIncomingMessage(rawMessage);
       if (!message) return;
 
+      const currentUser = userRef.current;
+
       setMessages((current) => {
         if (current.some((item) => item.id === message.id)) {
           return current;
         }
 
-        if (user && message.sender.id === user.id) {
+        if (currentUser && message.sender.id === currentUser.id) {
           const tempIndex = current.findIndex(
             (item) =>
               item.id.startsWith("temp-") &&
               item.content === message.content &&
-              item.sender.id === user.id,
+              item.sender.id === currentUser.id,
           );
 
           if (tempIndex !== -1) {
@@ -166,34 +181,39 @@ export default function ConversationPanel({
         return [...current, message];
       });
 
-      if (user && message.sender.id !== user.id) {
-        void markMessageAsRead(slug, tenantId, conversationId, message.id).then(
-          () =>
-            onConversationUpdated?.({
-              conversationId,
-              lastMessage: { content: message.content },
-              clearUnread: true,
-            }),
+      if (currentUser && message.sender.id !== currentUser.id) {
+        void markMessageAsRead(
+          slug,
+          tenantId,
+          activeConversationId,
+          message.id,
+        ).then(() =>
+          onConversationUpdatedRef.current?.({
+            conversationId: activeConversationId,
+            lastMessage: { content: message.content },
+            clearUnread: true,
+          }),
         );
       } else {
-        onConversationUpdated?.({
-          conversationId,
+        onConversationUpdatedRef.current?.({
+          conversationId: activeConversationId,
           lastMessage: { content: message.content },
         });
       }
     });
 
     const unsubscribeTyping = chatSocket.onUserTyping((data) => {
-      if (data.userId === user?.id) {
+      if (data.userId === userRef.current?.id) {
         return;
       }
 
+      const activeConversationId = conversationIdRef.current;
       const eventConversationId = String(
         data.conversationId ??
           (data as { conversation_id?: string }).conversation_id ??
           "",
       );
-      if (eventConversationId && eventConversationId !== conversationId) {
+      if (eventConversationId && eventConversationId !== activeConversationId) {
         return;
       }
 
@@ -214,7 +234,7 @@ export default function ConversationPanel({
     });
 
     const unsubscribeRead = chatSocket.onMessageRead((data) => {
-      if (data.conversationId !== conversationId) return;
+      if (data.conversationId !== conversationIdRef.current) return;
       setMessages((current) =>
         current.map((message) =>
           message.id === data.messageId
@@ -225,17 +245,15 @@ export default function ConversationPanel({
     });
 
     const handleConnect = () => {
-      chatSocket.joinConversation(conversationId);
+      chatSocket.joinConversation(conversationIdRef.current);
     };
 
     socket.on("connect", handleConnect);
-    if (socket.connected) {
-      chatSocket.joinConversation(conversationId);
-    }
+    chatSocket.joinConversation(conversationIdRef.current);
 
     return () => {
       socket.off("connect", handleConnect);
-      chatSocket.leaveConversation(conversationId);
+      chatSocket.leaveConversation(conversationIdRef.current);
       unsubscribeNewMessage();
       unsubscribeTyping();
       unsubscribeRead();
@@ -248,15 +266,7 @@ export default function ConversationPanel({
       isTypingEmitRef.current = false;
       setIsTyping(false);
     };
-  }, [
-    chatSocket,
-    conversationId,
-    isAuthenticated,
-    onConversationUpdated,
-    slug,
-    tenantId,
-    user,
-  ]);
+  }, [chatSocket, conversationId, isAuthenticated, slug, socketConnected, tenantId]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

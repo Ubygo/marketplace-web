@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { getAccessToken } from "@/lib/auth-session";
 import {
-  disconnectSocket,
   getSocket,
   initChatSocket,
   isSocketConnected,
@@ -16,7 +15,7 @@ import {
   sendMessageViaSocket,
   typing,
 } from "@/lib/chat-socket";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface ChatSocketApi {
   isConnected: boolean;
@@ -32,67 +31,67 @@ export interface ChatSocketApi {
 
 interface UseChatSocketOptions {
   enabled?: boolean;
-  disconnectOnUnmount?: boolean;
 }
+
+const stableChatSocketApi: ChatSocketApi = {
+  isConnected: false,
+  joinConversation,
+  leaveConversation,
+  sendMessageViaSocket,
+  typing,
+  onNewMessage,
+  onMessageRead,
+  onUserTyping,
+  getSocket,
+};
 
 export function useChatSocket(
   options: UseChatSocketOptions = {},
 ): ChatSocketApi {
-  const { enabled = true, disconnectOnUnmount = true } = options;
+  const { enabled = true } = options;
   const { slug } = useTenant();
   const { isAuthenticated } = useAuth();
   const [isConnected, setIsConnected] = useState(isSocketConnected());
-
-  const token =
-    enabled && isAuthenticated && typeof window !== "undefined"
-      ? getAccessToken(slug)
-      : null;
-
-  if (token) {
-    initChatSocket(token);
-  }
+  const apiRef = useRef(stableChatSocketApi);
 
   useEffect(() => {
-    if (!enabled || !isAuthenticated || !token) {
+    if (!enabled || !isAuthenticated) {
+      apiRef.current.isConnected = false;
       setIsConnected(false);
       return;
     }
 
-    const socketInstance = getSocket();
+    const token = getAccessToken(slug);
+    if (!token) {
+      apiRef.current.isConnected = false;
+      setIsConnected(false);
+      return;
+    }
+
+    const socketInstance = initChatSocket(token);
     if (!socketInstance) {
+      apiRef.current.isConnected = false;
       setIsConnected(false);
       return;
     }
 
-    const handleConnect = () => setIsConnected(true);
-    const handleDisconnect = () => setIsConnected(false);
+    const syncConnected = () => {
+      const connected = socketInstance.connected;
+      apiRef.current.isConnected = connected;
+      setIsConnected(connected);
+    };
 
-    socketInstance.on("connect", handleConnect);
-    socketInstance.on("disconnect", handleDisconnect);
-    setIsConnected(socketInstance.connected);
+    socketInstance.on("connect", syncConnected);
+    socketInstance.on("disconnect", syncConnected);
+    syncConnected();
 
     return () => {
-      socketInstance.off("connect", handleConnect);
-      socketInstance.off("disconnect", handleDisconnect);
-
-      if (disconnectOnUnmount) {
-        disconnectSocket();
-      }
+      socketInstance.off("connect", syncConnected);
+      socketInstance.off("disconnect", syncConnected);
     };
-  }, [disconnectOnUnmount, enabled, isAuthenticated, token]);
+  }, [enabled, isAuthenticated, slug]);
 
-  return useMemo(
-    () => ({
-      isConnected: getSocket()?.connected ?? isConnected,
-      joinConversation,
-      leaveConversation,
-      sendMessageViaSocket,
-      typing,
-      onNewMessage,
-      onMessageRead,
-      onUserTyping,
-      getSocket,
-    }),
-    [isConnected],
-  );
+  apiRef.current.isConnected = isConnected;
+
+  return apiRef.current;
 }
