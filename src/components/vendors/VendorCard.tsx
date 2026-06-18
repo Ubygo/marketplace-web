@@ -24,11 +24,11 @@ export default function VendorCard({ vendor }: VendorCardProps) {
   const coverImage = vendor.galleryImages[0];
 
   return (
-    <article className="relative overflow-hidden rounded-2xl bg-white transition-shadow hover:shadow-sm">
+    <article className="relative">
       <VendorCardLikeButton vendorId={vendor.id} />
 
       <Link href={`/vendors/${vendor.id}`} className="block">
-        <div className="relative aspect-[16/10] w-full bg-neutral-200">
+        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-neutral-200 transition-shadow hover:shadow-sm">
           {coverImage ? (
             <Image
               src={coverImage}
@@ -40,7 +40,7 @@ export default function VendorCard({ vendor }: VendorCardProps) {
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-3 p-3">
+        <div className="flex flex-col gap-3 pt-3">
           <div className="flex items-center gap-2">
             {vendor.avatarUrl ? (
               <Image
