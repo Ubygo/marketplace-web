@@ -32,12 +32,24 @@ export interface Order {
   createdAt?: string;
   serviceName?: string | Record<string, string>;
   serviceDescription?: string | Record<string, string>;
+  serviceType?: string;
   bookingNotes?: string | null;
   hasReview?: boolean;
+  guestUserId?: string | null;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  user?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    photoUrl?: string | null;
+    image?: string | null;
+  };
   vendor?: OrderVendor;
   service?: {
     id: string;
     name?: string | Record<string, string>;
+    serviceType?: string;
     category?: { name?: string | Record<string, string> };
   };
   serviceImage?: OrderServiceImage;

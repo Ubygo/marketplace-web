@@ -11,6 +11,7 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   destructive?: boolean;
+  isConfirming?: boolean;
 }
 
 export default function ConfirmDialog({
@@ -22,6 +23,7 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   destructive = false,
+  isConfirming = false,
 }: ConfirmDialogProps) {
   useEffect(() => {
     if (!open) {
@@ -29,7 +31,7 @@ export default function ConfirmDialog({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !isConfirming) {
         onCancel();
       }
     }
@@ -41,10 +43,16 @@ export default function ConfirmDialog({
       document.body.style.overflow = "";
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [open, onCancel]);
+  }, [open, onCancel, isConfirming]);
 
   if (!open) {
     return null;
+  }
+
+  function handleBackdropClick() {
+    if (!isConfirming) {
+      onCancel();
+    }
   }
 
   return (
@@ -53,7 +61,8 @@ export default function ConfirmDialog({
         type="button"
         aria-label="Fermer"
         className="absolute inset-0 bg-black/40"
-        onClick={onCancel}
+        onClick={handleBackdropClick}
+        disabled={isConfirming}
       />
 
       <div
@@ -80,21 +89,33 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full border border-black/10 px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-80"
+            disabled={isConfirming}
+            className="rounded-full border border-black/10 px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            disabled={isConfirming}
+            className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             style={{
               backgroundColor: destructive
                 ? "#DC2626"
                 : "var(--tenant-primary)",
             }}
           >
-            {confirmLabel}
+            {isConfirming ? (
+              <>
+                <span
+                  aria-hidden
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                />
+                Chargement…
+              </>
+            ) : (
+              confirmLabel
+            )}
           </button>
         </div>
       </div>

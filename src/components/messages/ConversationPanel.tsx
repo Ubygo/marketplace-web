@@ -263,8 +263,12 @@ export default function ConversationPanel({
     }, 1000);
   }
 
-  const avatar = conversation?.interlocutor?.images?.[0];
-  const interlocutorName = conversation?.interlocutor.name ?? "Conversation";
+  const interlocutor = conversation?.interlocutor;
+  const avatar =
+    interlocutor?.avatar ??
+    interlocutor?.images?.[0] ??
+    interlocutor?.photoUrl;
+  const interlocutorName = interlocutor?.name ?? "Conversation";
   const showSkeleton = isLoading;
   const isFullscreen = variant === "fullscreen";
 
@@ -336,7 +340,9 @@ export default function ConversationPanel({
               const isMine = message.sender.id === user?.id;
               const senderPhoto =
                 message.sender.photoUrl ||
-                conversation?.interlocutor?.images?.[0] ||
+                interlocutor?.avatar ||
+                interlocutor?.images?.[0] ||
+                interlocutor?.photoUrl ||
                 "";
 
               return (

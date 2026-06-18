@@ -21,6 +21,8 @@ export interface TenantFeatures {
   monetization: "COMMISSION" | "SUBSCRIPTION" | "BOTH";
   commissionRate?: number;
   subscriptionPrice?: number;
+  vendorMode?: "PUBLIC" | "LIMITED";
+  requireProviderApproval?: boolean;
 }
 
 export interface AppConfig {

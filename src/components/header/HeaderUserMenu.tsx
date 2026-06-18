@@ -5,6 +5,8 @@ import CategoryIcon from "@/components/categories/CategoryIcon";
 import { TEXT_COLOR } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
+import { useVendor } from "@/contexts/VendorContext";
+import { useIsProMode } from "@/hooks/useIsProMode";
 import { getUserInitials } from "@/lib/user-display";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,7 +19,7 @@ interface HeaderUserMenuProps {
 const MENU_ITEM_CLASS =
   "mx-2 flex w-[calc(100%-1rem)] items-center gap-3 rounded-full px-3 py-2.5 text-left text-sm font-medium text-black transition-colors hover:bg-neutral-100";
 
-const PRIMARY_MENU_ITEMS = [
+const CLIENT_MENU_ITEMS = [
   { href: "/favoris", label: "Favoris", icon: "Ionicons/heart-outline" },
   { href: "/commandes", label: "Commandes", icon: "Ionicons/receipt-outline" },
   { href: "/messages", label: "Messages", icon: "Ionicons/chatbubble-outline" },
@@ -25,6 +27,26 @@ const PRIMARY_MENU_ITEMS = [
     href: "/parametres",
     label: "Profil",
     icon: "Ionicons/person-circle-outline",
+  },
+] as const;
+
+const VENDOR_CLIENT_MENU_ITEM = {
+  href: "/pro",
+  label: "Espace pro",
+  icon: "Ionicons/briefcase-outline",
+} as const;
+
+const PRO_MENU_ITEMS = [
+  { href: "/pro", label: "Tableau de bord", icon: "Ionicons/grid-outline" },
+  {
+    href: "/pro/messages",
+    label: "Messages",
+    icon: "Ionicons/chatbubble-outline",
+  },
+  {
+    href: "/pro/parametres",
+    label: "Paramètres",
+    icon: "Ionicons/settings-outline",
   },
 ] as const;
 
@@ -91,6 +113,8 @@ function MenuButton({
 export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
   const { user, logout } = useAuth();
   const { hasUnreadMessages, refreshUnreadMessages } = useUnreadMessages();
+  const { hasVendor, isLoading: isVendorLoading } = useVendor();
+  const isProMode = useIsProMode();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -131,6 +155,15 @@ export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
   if (!user) {
     return null;
   }
+
+  const menuItems = isProMode
+    ? PRO_MENU_ITEMS
+    : [
+        ...(hasVendor && !isVendorLoading ? [VENDOR_CLIENT_MENU_ITEM] : []),
+        ...CLIENT_MENU_ITEMS,
+      ];
+
+  const messagesHref = isProMode ? "/pro/messages" : "/messages";
 
   function closeMenu() {
     setOpen(false);
@@ -173,14 +206,14 @@ export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
             aria-label="Menu utilisateur"
             className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-black/10 bg-white py-2 shadow-lg"
           >
-            {PRIMARY_MENU_ITEMS.map((item) => (
+            {menuItems.map((item) => (
               <MenuLink
                 key={item.href}
                 href={item.href}
                 icon={item.icon}
                 label={item.label}
                 onNavigate={closeMenu}
-                showBadge={item.href === "/messages" && hasUnreadMessages}
+                showBadge={item.href === messagesHref && hasUnreadMessages}
               />
             ))}
 

@@ -3,12 +3,15 @@
 import ConversationList from "@/components/messages/ConversationList";
 import ConversationPanel from "@/components/messages/ConversationPanel";
 import MessagesSplitView from "@/components/messages/MessagesSplitView";
-import ContentContainer from "@/components/layout/ContentContainer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
+import { useVendor } from "@/contexts/VendorContext";
 import { buildLoginUrl } from "@/lib/auth-url";
-import { getUserConversations } from "@/lib/conversations";
+import {
+  getUserConversations,
+  getVendorConversations,
+} from "@/lib/conversations";
 import type {
   Conversation,
   ConversationListUpdate,
@@ -16,16 +19,21 @@ import type {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+type MessagesMode = "customer" | "vendor";
+
 interface MessagesPageProps {
+  mode?: MessagesMode;
   initialConversationId?: string | null;
 }
 
 export default function MessagesPage({
+  mode = "customer",
   initialConversationId = null,
 }: MessagesPageProps) {
   const router = useRouter();
   const { slug, tenantId } = useTenant();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { vendor, hasVendor, isLoading: isVendorLoading } = useVendor();
   const { setHasUnreadMessages } = useUnreadMessages();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,14 +42,41 @@ export default function MessagesPage({
     string | null
   >(initialConversationId);
 
+  const basePath = mode === "vendor" ? "/pro/messages" : "/messages";
+
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
       const redirectPath = selectedConversationId
-        ? `/messages?conversation=${selectedConversationId}`
-        : "/messages";
+        ? `${basePath}?conversation=${selectedConversationId}`
+        : basePath;
       router.replace(buildLoginUrl(redirectPath));
     }
-  }, [isAuthenticated, isAuthLoading, router, selectedConversationId]);
+  }, [
+    basePath,
+    isAuthenticated,
+    isAuthLoading,
+    router,
+    selectedConversationId,
+  ]);
+
+  useEffect(() => {
+    if (
+      mode === "vendor" &&
+      !isAuthLoading &&
+      isAuthenticated &&
+      !isVendorLoading &&
+      !hasVendor
+    ) {
+      router.replace("/");
+    }
+  }, [
+    hasVendor,
+    isAuthenticated,
+    isAuthLoading,
+    isVendorLoading,
+    mode,
+    router,
+  ]);
 
   useEffect(() => {
     if (initialConversationId) {
@@ -50,12 +85,27 @@ export default function MessagesPage({
   }, [initialConversationId]);
 
   const loadConversations = useCallback(async () => {
-    if (!user?.id) return;
-
     setIsLoading(true);
     setError(null);
 
     try {
+      if (mode === "vendor") {
+        if (!vendor?.id) {
+          setConversations([]);
+          return;
+        }
+
+        const response = await getVendorConversations(
+          slug,
+          tenantId,
+          vendor.id,
+        );
+        setConversations(response.data ?? []);
+        return;
+      }
+
+      if (!user?.id) return;
+
       const response = await getUserConversations(slug, tenantId, user.id);
       setConversations(response.data ?? []);
     } catch {
@@ -64,12 +114,21 @@ export default function MessagesPage({
     } finally {
       setIsLoading(false);
     }
-  }, [slug, tenantId, user?.id]);
+  }, [mode, slug, tenantId, user?.id, vendor?.id]);
 
   useEffect(() => {
-    if (!isAuthenticated || !user?.id) return;
+    if (!isAuthenticated) return;
+    if (mode === "vendor" && (!vendor?.id || isVendorLoading)) return;
+    if (mode === "customer" && !user?.id) return;
     void loadConversations();
-  }, [isAuthenticated, loadConversations, user?.id]);
+  }, [
+    isAuthenticated,
+    isVendorLoading,
+    loadConversations,
+    mode,
+    user?.id,
+    vendor?.id,
+  ]);
 
   useEffect(() => {
     setHasUnreadMessages(
@@ -107,25 +166,39 @@ export default function MessagesPage({
     [],
   );
 
-  const handleSelectConversation = useCallback((conversationId: string) => {
-    setSelectedConversationId(conversationId);
-    window.history.replaceState(
-      null,
-      "",
-      `/messages?conversation=${conversationId}`,
-    );
-  }, []);
+  const handleSelectConversation = useCallback(
+    (conversationId: string) => {
+      setSelectedConversationId(conversationId);
+      window.history.replaceState(
+        null,
+        "",
+        `${basePath}?conversation=${conversationId}`,
+      );
+    },
+    [basePath],
+  );
 
   const handleDeselectConversation = useCallback(() => {
     setSelectedConversationId(null);
-    window.history.replaceState(null, "", "/messages");
-  }, []);
+    window.history.replaceState(null, "", basePath);
+  }, [basePath]);
 
   if (!isAuthLoading && !isAuthenticated) {
     return null;
   }
 
-  const showSkeleton = isAuthLoading || isLoading;
+  if (
+    mode === "vendor" &&
+    !isAuthLoading &&
+    isAuthenticated &&
+    !isVendorLoading &&
+    !hasVendor
+  ) {
+    return null;
+  }
+
+  const showSkeleton =
+    isAuthLoading || isLoading || (mode === "vendor" && isVendorLoading);
 
   return (
     <main>

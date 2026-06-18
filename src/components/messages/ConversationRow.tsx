@@ -46,7 +46,11 @@ export default function ConversationRow({
   isSelected = false,
   onSelect,
 }: ConversationRowProps) {
-  const avatar = conversation.interlocutor?.images?.[0];
+  const interlocutor = conversation.interlocutor;
+  const avatar =
+    interlocutor?.avatar ??
+    interlocutor?.images?.[0] ??
+    interlocutor?.photoUrl;
   const unreadCount = Number(conversation.unreadCount) || 0;
 
   return (

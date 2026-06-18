@@ -10,7 +10,10 @@ export default async function MessagesRoutePage({ searchParams }: PageProps) {
 
   return (
     <Suspense fallback={null}>
-      <MessagesPage initialConversationId={conversation ?? null} />
+      <MessagesPage
+        mode="customer"
+        initialConversationId={conversation ?? null}
+      />
     </Suspense>
   );
 }

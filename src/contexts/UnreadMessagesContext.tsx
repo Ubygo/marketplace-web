@@ -2,7 +2,12 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
-import { getUserConversations } from "@/lib/conversations";
+import { useVendor } from "@/contexts/VendorContext";
+import { useIsProMode } from "@/hooks/useIsProMode";
+import {
+  getUserConversations,
+  getVendorConversations,
+} from "@/lib/conversations";
 import {
   createContext,
   useCallback,
@@ -32,21 +37,34 @@ function hasUnreadConversations(
 export function UnreadMessagesProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { slug, tenantId } = useTenant();
+  const { vendor } = useVendor();
+  const isProMode = useIsProMode();
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
 
   const refreshUnreadMessages = useCallback(async () => {
-    if (!isAuthenticated || !user?.id) {
+    if (!isAuthenticated) {
       setHasUnreadMessages(false);
       return;
     }
 
     try {
+      if (isProMode && vendor?.id) {
+        const response = await getVendorConversations(slug, tenantId, vendor.id);
+        setHasUnreadMessages(hasUnreadConversations(response.data ?? []));
+        return;
+      }
+
+      if (!user?.id) {
+        setHasUnreadMessages(false);
+        return;
+      }
+
       const response = await getUserConversations(slug, tenantId, user.id);
       setHasUnreadMessages(hasUnreadConversations(response.data ?? []));
     } catch {
       setHasUnreadMessages(false);
     }
-  }, [isAuthenticated, slug, tenantId, user?.id]);
+  }, [isAuthenticated, isProMode, slug, tenantId, user?.id, vendor?.id]);
 
   useEffect(() => {
     if (isAuthLoading) {

@@ -21,6 +21,26 @@ export async function getUserConversations(
   return res.json();
 }
 
+export async function getVendorConversations(
+  slug: string,
+  tenantId: string,
+  vendorId: string,
+  page = 1,
+  limit = 100,
+): Promise<ConversationsResponse> {
+  const res = await authenticatedFetch(
+    slug,
+    tenantId,
+    `/api/conversations/vendor/${vendorId}?page=${page}&limit=${limit}`,
+  );
+
+  if (!res.ok) {
+    throw new Error("Impossible de charger les conversations.");
+  }
+
+  return res.json();
+}
+
 export async function getConversationById(
   slug: string,
   tenantId: string,

@@ -16,6 +16,7 @@ import {
 } from "@/lib/orders";
 import { fetchVendorByIdClient } from "@/lib/vendors-client";
 import { getVendorImageUrl } from "@/lib/vendor-display";
+import type { OrderViewerType } from "@/constants/orderStatus";
 import type { Order } from "@/types/order";
 import type { Vendor } from "@/types/vendor";
 import Image from "next/image";
@@ -25,6 +26,7 @@ import { useCallback, useEffect, useState } from "react";
 
 interface OrderDetailDrawerProps {
   orderId: string | null;
+  viewerType?: OrderViewerType;
   onClose: () => void;
   onOrderUpdated: () => void;
 }
@@ -69,8 +71,21 @@ function resolveVendorImageUrl(
   );
 }
 
+function resolveCustomerName(order: Order): string {
+  if (order.user?.firstName || order.user?.lastName) {
+    return `${order.user.firstName ?? ""} ${order.user.lastName ?? ""}`.trim();
+  }
+
+  return order.customerName ?? order.customerEmail ?? "Client invité";
+}
+
+function resolveCustomerImageUrl(order: Order): string | null {
+  return order.user?.photoUrl ?? order.user?.image ?? null;
+}
+
 export default function OrderDetailDrawer({
   orderId,
+  viewerType = "customer",
   onClose,
   onOrderUpdated,
 }: OrderDetailDrawerProps) {
@@ -93,7 +108,7 @@ export default function OrderDetailDrawer({
       let data = await getOrderById(slug, tenantId, orderId);
       const vendorId = data.vendor?.id;
 
-      if (vendorId) {
+      if (vendorId && viewerType === "customer") {
         const hasVendorImage = Boolean(
           data.vendor?.photo ||
           data.vendor?.images?.[0]?.url ||
@@ -124,7 +139,7 @@ export default function OrderDetailDrawer({
     } finally {
       setIsLoading(false);
     }
-  }, [orderId, slug, tenantId]);
+  }, [orderId, slug, tenantId, viewerType]);
 
   useEffect(() => {
     if (!orderId) {
@@ -194,9 +209,12 @@ export default function OrderDetailDrawer({
   const vendorDescription =
     vendorDetails?.description ?? order?.vendor?.description ?? null;
   const showReviewButton =
+    viewerType === "customer" &&
     order?.orderStatus === "COMPLETED" &&
     !order.hasReview &&
     Boolean(order.vendor?.id);
+  const customerName = order ? resolveCustomerName(order) : "Client";
+  const customerImageUrl = order ? resolveCustomerImageUrl(order) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch justify-end p-4">
@@ -295,7 +313,46 @@ export default function OrderDetailDrawer({
                 </dl>
               </section>
 
-              {order.vendor ? (
+              {viewerType === "vendor" && (order.user || order.customerName || order.customerEmail) ? (
+                <section className="rounded-2xl bg-black/[0.03] p-4">
+                  <h2 className="mb-3 text-sm font-semibold text-black/60">
+                    Client
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    {customerImageUrl ? (
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+                        <Image
+                          src={customerImageUrl}
+                          alt={customerName}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white">
+                        <CategoryIcon
+                          icon="Ionicons/person-outline"
+                          size={24}
+                          color={TEXT_COLOR}
+                        />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-black">
+                        {customerName}
+                      </p>
+                      {order.customerEmail ? (
+                        <p className="truncate text-xs text-black/60">
+                          {order.customerEmail}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
+              {viewerType === "customer" && order.vendor ? (
                 <section className="rounded-2xl bg-black/[0.03] p-4">
                   <h2 className="mb-3 text-sm font-semibold text-black/60">
                     Prestataire
@@ -400,6 +457,7 @@ export default function OrderDetailDrawer({
               <section>
                 <OrderDetailActions
                   order={order}
+                  viewerType={viewerType}
                   onOrderUpdate={handleOrderUpdate}
                 />
               </section>

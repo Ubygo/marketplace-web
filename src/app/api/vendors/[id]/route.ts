@@ -26,3 +26,29 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const payload = await res.json().catch(() => ({}));
   return NextResponse.json(payload, { status: res.status });
 }
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  const tenantId = request.headers.get("x-tenant-id");
+  const authorization = request.headers.get("authorization");
+  const { id } = await context.params;
+
+  if (!tenantId || !authorization) {
+    return NextResponse.json({ message: "Non authentifié." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => ({}));
+
+  const res = await fetch(`${API_BASE_URL}/vendors/${id}`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Tenant-Id": tenantId,
+      Authorization: authorization,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = await res.json().catch(() => ({}));
+  return NextResponse.json(payload, { status: res.status });
+}

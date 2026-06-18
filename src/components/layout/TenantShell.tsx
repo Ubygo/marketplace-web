@@ -9,8 +9,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { SearchProvider, useSearch } from "@/contexts/SearchContext";
 import { TenantProvider } from "@/contexts/TenantContext";
+import { VendorProvider } from "@/contexts/VendorContext";
 import { UnreadMessagesProvider } from "@/contexts/UnreadMessagesContext";
-import type { TenantBranding } from "@/lib/app-config";
+import type { TenantBranding, TenantFeatures } from "@/lib/app-config";
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
@@ -19,6 +20,10 @@ interface TenantShellProps {
   slug: string;
   branding: TenantBranding;
   name: string;
+  currency?: string;
+  features?: TenantFeatures | null;
+  payoutMode?: string | null;
+  escrowEnabled?: boolean;
   stripePublishableKey?: string | null;
   mapboxPublicToken?: string | null;
   privacyPolicyUrl?: string | null;
@@ -42,6 +47,10 @@ export default function TenantShell({
   slug,
   branding,
   name,
+  currency = "EUR",
+  features = null,
+  payoutMode = null,
+  escrowEnabled = false,
   stripePublishableKey = null,
   mapboxPublicToken = null,
   privacyPolicyUrl,
@@ -54,6 +63,11 @@ export default function TenantShell({
       tenantId={tenantId}
       slug={slug}
       tenantName={name}
+      primaryColor={branding.primaryColor}
+      currency={currency}
+      features={features}
+      payoutMode={payoutMode}
+      escrowEnabled={escrowEnabled}
       stripePublishableKey={stripePublishableKey}
       mapboxPublicToken={mapboxPublicToken}
       privacyPolicyUrl={privacyPolicyUrl}
@@ -62,18 +76,20 @@ export default function TenantShell({
     >
       <TenantStripeProvider publishableKey={stripePublishableKey}>
         <AuthProvider tenantId={tenantId} slug={slug}>
-          <FavoritesProvider>
-            <UnreadMessagesProvider>
-              <SearchProvider tenantId={tenantId}>
-                <AppHeader branding={branding} name={name} />
-                <ContentContainer className="flex min-h-full flex-1 flex-col">
-                  <SearchAwareContent>{children}</SearchAwareContent>
-                </ContentContainer>
-                <AppFooter branding={branding} name={name} />
-                <Toaster position="top-center" richColors closeButton />
-              </SearchProvider>
-            </UnreadMessagesProvider>
-          </FavoritesProvider>
+          <VendorProvider>
+            <FavoritesProvider>
+              <UnreadMessagesProvider>
+                <SearchProvider tenantId={tenantId}>
+                  <AppHeader branding={branding} name={name} />
+                  <ContentContainer className="flex min-h-full flex-1 flex-col">
+                    <SearchAwareContent>{children}</SearchAwareContent>
+                  </ContentContainer>
+                  <AppFooter branding={branding} name={name} />
+                  <Toaster position="top-center" richColors closeButton />
+                </SearchProvider>
+              </UnreadMessagesProvider>
+            </FavoritesProvider>
+          </VendorProvider>
         </AuthProvider>
       </TenantStripeProvider>
     </TenantProvider>

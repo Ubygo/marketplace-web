@@ -3,6 +3,7 @@
 import HeaderDrawer, { type HeaderNavItem } from "@/components/header/HeaderDrawer";
 import HeaderAuthButton from "@/components/header/HeaderAuthButton";
 import HeaderUserMenu from "@/components/header/HeaderUserMenu";
+import HeaderVendorButton from "@/components/header/HeaderVendorButton";
 import {
   HeaderSearchDesktop,
   HeaderSearchMobileButton,
@@ -14,6 +15,7 @@ import ContentContainer from "@/components/layout/ContentContainer";
 import { useAuth } from "@/contexts/AuthContext";
 import { TEXT_COLOR } from "@/constants/theme";
 import type { TenantBranding } from "@/lib/app-config";
+import { useIsProMode } from "@/hooks/useIsProMode";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -26,6 +28,7 @@ interface AppHeaderProps {
 export default function AppHeader({ branding, name }: AppHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
+  const isProMode = useIsProMode();
   const displayName = branding.displayName || name;
   const { logoUrl, primaryColor } = branding;
 
@@ -55,7 +58,7 @@ export default function AppHeader({ branding, name }: AppHeaderProps) {
       <header className="py-3 md:py-4">
         <ContentContainer className="flex items-center justify-between gap-3">
           <Link
-            href="/"
+            href={isProMode ? "/pro" : "/"}
             className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80 md:gap-3"
           >
             {logoUrl ? (
@@ -73,11 +76,18 @@ export default function AppHeader({ branding, name }: AppHeaderProps) {
           </Link>
 
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 md:gap-3">
-            <HeaderSearchDesktop />
-            <HeaderSearchMobileButton />
+            {!isProMode ? (
+              <>
+                <HeaderSearchDesktop />
+                <HeaderSearchMobileButton />
+              </>
+            ) : null}
 
             {isAuthenticated ? (
-              <HeaderUserMenu primaryColor={primaryColor} />
+              <>
+                <HeaderVendorButton primaryColor={primaryColor} />
+                <HeaderUserMenu primaryColor={primaryColor} />
+              </>
             ) : (
               <>
                 <HeaderAuthButton primaryColor={primaryColor} />
@@ -95,7 +105,7 @@ export default function AppHeader({ branding, name }: AppHeaderProps) {
           </div>
         </ContentContainer>
 
-        <HeaderSearchMobilePanel />
+        {!isProMode ? <HeaderSearchMobilePanel /> : null}
 
         <HeaderDrawer
           open={menuOpen}

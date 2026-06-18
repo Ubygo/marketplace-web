@@ -1,11 +1,17 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import type { TenantFeatures } from "@/lib/app-config";
 
 interface TenantContextValue {
   tenantId: string;
   slug: string;
   tenantName: string;
+  primaryColor: string;
+  currency: string;
+  features: TenantFeatures | null;
+  payoutMode: string | null;
+  escrowEnabled: boolean;
   stripePublishableKey: string | null;
   mapboxPublicToken: string | null;
   privacyPolicyUrl: string | null;
@@ -19,6 +25,11 @@ interface TenantProviderProps {
   tenantId: string;
   slug: string;
   tenantName: string;
+  primaryColor?: string;
+  currency?: string;
+  features?: TenantFeatures | null;
+  payoutMode?: string | null;
+  escrowEnabled?: boolean;
   stripePublishableKey?: string | null;
   mapboxPublicToken?: string | null;
   privacyPolicyUrl?: string | null;
@@ -31,6 +42,11 @@ export function TenantProvider({
   tenantId,
   slug,
   tenantName,
+  primaryColor = "#111111",
+  currency = "EUR",
+  features = null,
+  payoutMode = null,
+  escrowEnabled = false,
   stripePublishableKey = null,
   mapboxPublicToken = null,
   privacyPolicyUrl = null,
@@ -44,6 +60,11 @@ export function TenantProvider({
         tenantId,
         slug,
         tenantName,
+        primaryColor,
+        currency,
+        features,
+        payoutMode,
+        escrowEnabled,
         stripePublishableKey,
         mapboxPublicToken,
         privacyPolicyUrl,
