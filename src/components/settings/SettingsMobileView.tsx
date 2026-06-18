@@ -9,11 +9,13 @@ interface SettingsMobileViewProps {
   onLogout: () => void;
 }
 
-export default function SettingsMobileView({ onLogout }: SettingsMobileViewProps) {
+export default function SettingsMobileView({
+  onLogout,
+}: SettingsMobileViewProps) {
   const { privacyPolicyUrl, cgvUrl } = useTenant();
 
   return (
-    <main className="flex w-full flex-col gap-4 py-8 md:hidden">
+    <main className="flex w-full flex-col gap-4 md:hidden">
       <h1 className="text-2xl font-bold text-black">Paramètres</h1>
 
       <SettingsPersonalInfoCard />

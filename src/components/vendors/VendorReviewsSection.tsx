@@ -237,7 +237,20 @@ export default function VendorReviewsSection({
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-black/70">Chargement des avis...</p>
+        <div className="flex flex-col gap-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="rounded-2xl border border-black/10 bg-white p-4"
+            >
+              <div className="mb-3 flex items-center gap-3">
+                <div className="h-10 w-10 animate-pulse rounded-full bg-neutral-200" />
+                <div className="h-4 w-28 animate-pulse rounded-full bg-neutral-200" />
+              </div>
+              <div className="h-4 w-full animate-pulse rounded-full bg-neutral-200" />
+            </div>
+          ))}
+        </div>
       ) : null}
 
       {error ? (

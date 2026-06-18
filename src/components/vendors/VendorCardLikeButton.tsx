@@ -1,17 +1,13 @@
 "use client";
 
 import CategoryIcon from "@/components/categories/CategoryIcon";
+import LikeButtonSkeleton from "@/components/vendors/LikeButtonSkeleton";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTenant } from "@/contexts/TenantContext";
+import { useFavorites } from "@/contexts/FavoritesContext";
 import { TEXT_COLOR } from "@/constants/theme";
 import { buildLoginUrl } from "@/lib/auth-url";
-import {
-  addVendorToFavorites,
-  getMyFavorites,
-  removeVendorFromFavorites,
-} from "@/lib/favorites";
 import { usePathname, useRouter } from "next/navigation";
-import { MouseEvent, useEffect, useState } from "react";
+import { MouseEvent, useState } from "react";
 
 interface VendorCardLikeButtonProps {
   vendorId: string;
@@ -22,47 +18,23 @@ export default function VendorCardLikeButton({
 }: VendorCardLikeButtonProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, isLoading } = useAuth();
-  const { tenantId, slug } = useTenant();
-  const [isLiked, setIsLiked] = useState(false);
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { isFavorite, isReady, toggleFavorite } = useFavorites();
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const currentPath = pathname;
-
-  useEffect(() => {
-    if (!isAuthenticated || isLoading) {
-      return;
-    }
-
-    let isMounted = true;
-
-    getMyFavorites(slug, tenantId)
-      .then((favorites) => {
-        if (!isMounted) {
-          return;
-        }
-
-        setIsLiked(favorites.some((favorite) => favorite.vendorId === vendorId));
-      })
-      .catch(() => {
-        // Ignore favorites load errors on cards.
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isAuthenticated, isLoading, slug, tenantId, vendorId]);
+  const isLiked = isFavorite(vendorId);
+  const showSkeleton = isAuthenticated && (!isReady || isAuthLoading);
 
   async function handleClick(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (isLoading) {
+    if (isAuthLoading || showSkeleton) {
       return;
     }
 
     if (!isAuthenticated) {
-      router.push(buildLoginUrl(currentPath));
+      router.push(buildLoginUrl(pathname));
       return;
     }
 
@@ -73,18 +45,16 @@ export default function VendorCardLikeButton({
     setIsUpdating(true);
 
     try {
-      if (isLiked) {
-        await removeVendorFromFavorites(slug, tenantId, vendorId);
-        setIsLiked(false);
-      } else {
-        await addVendorToFavorites(slug, tenantId, vendorId);
-        setIsLiked(true);
-      }
+      await toggleFavorite(vendorId);
     } catch {
       // Keep current state on failure.
     } finally {
       setIsUpdating(false);
     }
+  }
+
+  if (showSkeleton) {
+    return <LikeButtonSkeleton />;
   }
 
   return (

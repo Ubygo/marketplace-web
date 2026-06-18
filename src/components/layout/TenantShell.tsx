@@ -5,6 +5,7 @@ import AppHeader from "@/components/header/AppHeader";
 import ContentContainer from "@/components/layout/ContentContainer";
 import SearchResults from "@/components/search/SearchResults";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { SearchProvider, useSearch } from "@/contexts/SearchContext";
 import { TenantProvider } from "@/contexts/TenantContext";
 import type { TenantBranding } from "@/lib/app-config";
@@ -50,13 +51,15 @@ export default function TenantShell({
       supportEmail={supportEmail}
     >
       <AuthProvider tenantId={tenantId} slug={slug}>
-        <SearchProvider tenantId={tenantId}>
+        <FavoritesProvider>
+          <SearchProvider tenantId={tenantId}>
           <AppHeader branding={branding} name={name} />
           <ContentContainer className="flex min-h-full flex-1 flex-col">
             <SearchAwareContent>{children}</SearchAwareContent>
           </ContentContainer>
           <AppFooter branding={branding} name={name} />
         </SearchProvider>
+        </FavoritesProvider>
       </AuthProvider>
     </TenantProvider>
   );

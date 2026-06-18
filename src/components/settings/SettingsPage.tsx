@@ -36,11 +36,7 @@ export default function SettingsPage() {
   }
 
   if (isLoading || !isAuthenticated) {
-    return (
-      <main className="flex min-h-full flex-1 items-center justify-center px-4 py-10">
-        <p className="text-sm text-black/70">Chargement...</p>
-      </main>
-    );
+    return null;
   }
 
   function renderDesktopPanel() {
@@ -55,7 +51,7 @@ export default function SettingsPage() {
     <>
       <SettingsMobileView onLogout={handleLogoutRequest} />
 
-      <main className="hidden w-full py-8 lg:py-10 md:block">
+      <main className="hidden w-full md:block">
         <div className="flex w-full items-stretch gap-8 lg:gap-8">
           <SettingsSidebar
             activeSection={activeSection}

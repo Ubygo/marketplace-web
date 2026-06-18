@@ -2,6 +2,7 @@
 
 import HeaderDrawer, { type HeaderNavItem } from "@/components/header/HeaderDrawer";
 import HeaderAuthButton from "@/components/header/HeaderAuthButton";
+import HeaderUserMenu from "@/components/header/HeaderUserMenu";
 import {
   HeaderSearchDesktop,
   HeaderSearchMobileButton,
@@ -29,12 +30,8 @@ export default function AppHeader({ branding, name }: AppHeaderProps) {
   const { logoUrl, primaryColor } = branding;
 
   const drawerItems = useMemo<HeaderNavItem[]>(() => {
-    if (isLoading) {
+    if (isLoading || isAuthenticated) {
       return [];
-    }
-
-    if (isAuthenticated) {
-      return [{ href: "/parametres", label: "Paramètres", mobileOnly: true }];
     }
 
     return [{ href: "/login", label: "Connexion", mobileOnly: true }];
@@ -77,19 +74,24 @@ export default function AppHeader({ branding, name }: AppHeaderProps) {
 
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 md:gap-3">
             <HeaderSearchDesktop />
-
-            <HeaderAuthButton primaryColor={primaryColor} />
             <HeaderSearchMobileButton />
 
-            <button
-              type="button"
-              aria-label="Menu"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen(true)}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white md:hidden"
-            >
-              <CategoryIcon icon="Ionicons/menu" size={22} color={TEXT_COLOR} />
-            </button>
+            {isAuthenticated ? (
+              <HeaderUserMenu primaryColor={primaryColor} />
+            ) : (
+              <>
+                <HeaderAuthButton primaryColor={primaryColor} />
+                <button
+                  type="button"
+                  aria-label="Menu"
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen(true)}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white md:hidden"
+                >
+                  <CategoryIcon icon="Ionicons/menu" size={22} color={TEXT_COLOR} />
+                </button>
+              </>
+            )}
           </div>
         </ContentContainer>
 

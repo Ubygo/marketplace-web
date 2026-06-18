@@ -28,7 +28,7 @@ export default function VendorCard({ vendor }: VendorCardProps) {
       <VendorCardLikeButton vendorId={vendor.id} />
 
       <Link href={`/vendors/${vendor.id}`} className="block">
-        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-neutral-200 transition-shadow hover:shadow-sm">
+        <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl bg-neutral-200 transition-shadow hover:shadow-sm">
           {coverImage ? (
             <Image
               src={coverImage}
