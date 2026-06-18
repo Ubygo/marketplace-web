@@ -171,7 +171,7 @@ export default function OrderDetailDrawer({
         vendorId,
       });
       onClose();
-      router.push(`/messages/${conversation.id}`);
+      router.push(`/messages?conversation=${conversation.id}`);
     } catch {
       setError("Impossible de contacter le prestataire.");
     } finally {

@@ -1,5 +1,16 @@
 import MessagesPage from "@/components/messages/MessagesPage";
+import { Suspense } from "react";
 
-export default function MessagesRoutePage() {
-  return <MessagesPage />;
+interface PageProps {
+  searchParams: Promise<{ conversation?: string }>;
+}
+
+export default async function MessagesRoutePage({ searchParams }: PageProps) {
+  const { conversation } = await searchParams;
+
+  return (
+    <Suspense fallback={null}>
+      <MessagesPage initialConversationId={conversation ?? null} />
+    </Suspense>
+  );
 }

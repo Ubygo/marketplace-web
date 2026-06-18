@@ -37,6 +37,12 @@ export interface ConversationsResponse {
   meta?: PaginationMeta;
 }
 
+export interface ConversationListUpdate {
+  conversationId: string;
+  lastMessage?: { content: string };
+  clearUnread?: boolean;
+}
+
 export interface Message {
   id: string;
   content: string;

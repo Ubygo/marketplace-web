@@ -1,29 +1,51 @@
 "use client";
 
-import ConversationRow from "@/components/messages/ConversationRow";
-import ConversationRowSkeleton from "@/components/messages/ConversationRowSkeleton";
+import ConversationList from "@/components/messages/ConversationList";
+import ConversationPanel from "@/components/messages/ConversationPanel";
+import MessagesSplitView from "@/components/messages/MessagesSplitView";
 import ContentContainer from "@/components/layout/ContentContainer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { buildLoginUrl } from "@/lib/auth-url";
 import { getUserConversations } from "@/lib/conversations";
-import type { Conversation } from "@/types/conversation";
+import type {
+  Conversation,
+  ConversationListUpdate,
+} from "@/types/conversation";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-export default function MessagesPage() {
+interface MessagesPageProps {
+  initialConversationId?: string | null;
+}
+
+export default function MessagesPage({
+  initialConversationId = null,
+}: MessagesPageProps) {
   const router = useRouter();
   const { slug, tenantId } = useTenant();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(initialConversationId);
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
-      router.replace(buildLoginUrl("/messages"));
+      const redirectPath = selectedConversationId
+        ? `/messages?conversation=${selectedConversationId}`
+        : "/messages";
+      router.replace(buildLoginUrl(redirectPath));
     }
-  }, [isAuthenticated, isAuthLoading, router]);
+  }, [isAuthenticated, isAuthLoading, router, selectedConversationId]);
+
+  useEffect(() => {
+    if (initialConversationId) {
+      setSelectedConversationId(initialConversationId);
+    }
+  }, [initialConversationId]);
 
   const loadConversations = useCallback(async () => {
     if (!user?.id) return;
@@ -47,6 +69,50 @@ export default function MessagesPage() {
     void loadConversations();
   }, [isAuthenticated, loadConversations, user?.id]);
 
+  const handleConversationUpdated = useCallback(
+    (update: ConversationListUpdate) => {
+      setConversations((current) => {
+        const next = current.map((conversation) => {
+          if (conversation.id !== update.conversationId) {
+            return conversation;
+          }
+
+          return {
+            ...conversation,
+            ...(update.lastMessage
+              ? {
+                  lastMessage: update.lastMessage,
+                  lastMessageDate: new Date().toISOString(),
+                }
+              : {}),
+            ...(update.clearUnread ? { unreadCount: 0 } : {}),
+          };
+        });
+
+        return [...next].sort(
+          (a, b) =>
+            new Date(b.lastMessageDate).getTime() -
+            new Date(a.lastMessageDate).getTime(),
+        );
+      });
+    },
+    [],
+  );
+
+  const handleSelectConversation = useCallback((conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    window.history.replaceState(
+      null,
+      "",
+      `/messages?conversation=${conversationId}`,
+    );
+  }, []);
+
+  const handleDeselectConversation = useCallback(() => {
+    setSelectedConversationId(null);
+    window.history.replaceState(null, "", "/messages");
+  }, []);
+
   if (!isAuthLoading && !isAuthenticated) {
     return null;
   }
@@ -55,32 +121,40 @@ export default function MessagesPage() {
 
   return (
     <main>
-      <ContentContainer className="max-w-2xl">
-        <h1 className="mb-6 text-2xl font-bold text-black">Messages</h1>
+      <div className="hidden md:block">
+        <MessagesSplitView
+          conversations={conversations}
+          isLoading={showSkeleton}
+          error={error}
+          selectedConversationId={selectedConversationId}
+          onSelectConversation={handleSelectConversation}
+          onConversationUpdated={handleConversationUpdated}
+        />
+      </div>
 
-        {showSkeleton ? (
-          <div>
-            {Array.from({ length: 5 }).map((_, index) => (
-              <ConversationRowSkeleton key={index} />
-            ))}
+      <div className="md:hidden">
+        {selectedConversationId ? (
+          <div className="overflow-hidden rounded-xl border border-black/10 bg-white shadow-sm">
+            <ConversationPanel
+              key={selectedConversationId}
+              conversationId={selectedConversationId}
+              variant="fullscreen"
+              onBack={handleDeselectConversation}
+              onConversationUpdated={handleConversationUpdated}
+            />
           </div>
-        ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
-        ) : conversations.length === 0 ? (
-          <p className="py-10 text-center text-sm text-black/60">
-            Aucune conversation pour le moment.
-          </p>
         ) : (
-          <div>
-            {conversations.map((conversation) => (
-              <ConversationRow
-                key={conversation.id}
-                conversation={conversation}
-              />
-            ))}
+          <div className="overflow-hidden rounded-xl border border-black/10 bg-white shadow-sm">
+            <ConversationList
+              conversations={conversations}
+              isLoading={showSkeleton}
+              error={error}
+              onSelect={handleSelectConversation}
+              showTitle
+            />
           </div>
         )}
-      </ContentContainer>
+      </div>
     </main>
   );
 }

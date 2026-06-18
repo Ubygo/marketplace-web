@@ -1,4 +1,4 @@
-import ConversationPage from "@/components/messages/ConversationPage";
+import { redirect } from "next/navigation";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -6,5 +6,5 @@ interface PageProps {
 
 export default async function MessageDetailPage({ params }: PageProps) {
   const { id } = await params;
-  return <ConversationPage conversationId={id} />;
+  redirect(`/messages?conversation=${id}`);
 }
