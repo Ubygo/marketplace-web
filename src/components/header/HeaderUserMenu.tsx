@@ -4,6 +4,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import CategoryIcon from "@/components/categories/CategoryIcon";
 import { TEXT_COLOR } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { getUserInitials } from "@/lib/user-display";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,10 +28,22 @@ const PRIMARY_MENU_ITEMS = [
   },
 ] as const;
 
-function MenuItemIcon({ icon }: { icon: string }) {
+function MenuItemIcon({
+  icon,
+  showBadge = false,
+}: {
+  icon: string;
+  showBadge?: boolean;
+}) {
   return (
-    <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+    <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
       <CategoryIcon icon={icon} size={20} color={TEXT_COLOR} />
+      {showBadge ? (
+        <span
+          aria-hidden
+          className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-orange-500"
+        />
+      ) : null}
     </span>
   );
 }
@@ -40,15 +53,17 @@ function MenuLink({
   icon,
   label,
   onNavigate,
+  showBadge = false,
 }: {
   href: string;
   icon: string;
   label: string;
   onNavigate: () => void;
+  showBadge?: boolean;
 }) {
   return (
     <Link href={href} onClick={onNavigate} className={MENU_ITEM_CLASS}>
-      <MenuItemIcon icon={icon} />
+      <MenuItemIcon icon={icon} showBadge={showBadge} />
       <span>{label}</span>
     </Link>
   );
@@ -75,6 +90,7 @@ function MenuButton({
 
 export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
   const { user, logout } = useAuth();
+  const { hasUnreadMessages, refreshUnreadMessages } = useUnreadMessages();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -106,6 +122,11 @@ export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
       document.removeEventListener("keydown", handleEscape);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !user) return;
+    void refreshUnreadMessages();
+  }, [open, refreshUnreadMessages, user]);
 
   if (!user) {
     return null;
@@ -159,6 +180,7 @@ export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
                 icon={item.icon}
                 label={item.label}
                 onNavigate={closeMenu}
+                showBadge={item.href === "/messages" && hasUnreadMessages}
               />
             ))}
 

@@ -13,6 +13,10 @@ export interface Service {
   categoryId: string;
   visible: boolean;
   vendorId: string;
+  serviceType?: string;
+  bookingLocationType?: string;
+  duration?: number;
+  durationMetric?: string;
   images?: ServiceImage[];
   serviceImages?: ServiceImage[];
 }

@@ -43,6 +43,8 @@ export default async function RootLayout({
             slug={config.slug}
             branding={config.branding}
             name={config.name}
+            stripePublishableKey={config.stripePublishableKey}
+            mapboxPublicToken={config.mapboxPublicToken}
             privacyPolicyUrl={config.privacyPolicyUrl}
             cgvUrl={config.cgvUrl}
             supportEmail={config.supportEmail}

@@ -1,6 +1,7 @@
 "use client";
 
 import VendorAboutTab from "@/components/vendors/VendorAboutTab";
+import VendorBookingMobileBar from "@/components/vendors/VendorBookingMobileBar";
 import VendorBookingSidebar from "@/components/vendors/VendorBookingSidebar";
 import VendorDetailHeader from "@/components/vendors/VendorDetailHeader";
 import VendorDetailTabs, {
@@ -84,7 +85,7 @@ export default function VendorDetail({
   }, [services, initialServiceId]);
 
   return (
-    <main className="flex min-h-full flex-1 flex-col pb-10">
+    <main className="flex min-h-full flex-1 flex-col pb-24 lg:pb-10">
       <div className="lg:hidden">
         <div className="-mx-4 flex flex-col gap-4 px-4 pb-2 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8">
           <VendorDetailHeader vendor={vendor} />
@@ -156,6 +157,15 @@ export default function VendorDetail({
           />
         </aside>
       </div>
+
+      {hasServices ? (
+        <VendorBookingMobileBar
+          vendorId={vendor.id}
+          services={services}
+          currency={currency}
+          selectedServiceId={selectedServiceId}
+        />
+      ) : null}
     </main>
   );
 }

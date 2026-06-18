@@ -5,6 +5,9 @@ import { createContext, useContext, type ReactNode } from "react";
 interface TenantContextValue {
   tenantId: string;
   slug: string;
+  tenantName: string;
+  stripePublishableKey: string | null;
+  mapboxPublicToken: string | null;
   privacyPolicyUrl: string | null;
   cgvUrl: string | null;
   supportEmail: string | null;
@@ -15,6 +18,9 @@ const TenantContext = createContext<TenantContextValue | null>(null);
 interface TenantProviderProps {
   tenantId: string;
   slug: string;
+  tenantName: string;
+  stripePublishableKey?: string | null;
+  mapboxPublicToken?: string | null;
   privacyPolicyUrl?: string | null;
   cgvUrl?: string | null;
   supportEmail?: string | null;
@@ -24,6 +30,9 @@ interface TenantProviderProps {
 export function TenantProvider({
   tenantId,
   slug,
+  tenantName,
+  stripePublishableKey = null,
+  mapboxPublicToken = null,
   privacyPolicyUrl = null,
   cgvUrl = null,
   supportEmail = null,
@@ -31,7 +40,16 @@ export function TenantProvider({
 }: TenantProviderProps) {
   return (
     <TenantContext.Provider
-      value={{ tenantId, slug, privacyPolicyUrl, cgvUrl, supportEmail }}
+      value={{
+        tenantId,
+        slug,
+        tenantName,
+        stripePublishableKey,
+        mapboxPublicToken,
+        privacyPolicyUrl,
+        cgvUrl,
+        supportEmail,
+      }}
     >
       {children}
     </TenantContext.Provider>

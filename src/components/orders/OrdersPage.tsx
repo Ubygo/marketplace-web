@@ -16,6 +16,7 @@ import {
 import type { Order } from "@/types/order";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 interface OrdersPageProps {
   initialOrderId?: string | null;
@@ -33,6 +34,13 @@ export default function OrdersPage({ initialOrderId = null }: OrdersPageProps) {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(
     initialOrderId,
   );
+
+  useEffect(() => {
+    if (searchParams.get("payment") === "success") {
+      toast.success("Paiement réussi");
+      router.replace("/commandes", { scroll: false });
+    }
+  }, [router, searchParams]);
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {

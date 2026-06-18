@@ -6,6 +6,7 @@ import MessagesSplitView from "@/components/messages/MessagesSplitView";
 import ContentContainer from "@/components/layout/ContentContainer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
+import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { buildLoginUrl } from "@/lib/auth-url";
 import { getUserConversations } from "@/lib/conversations";
 import type {
@@ -25,6 +26,7 @@ export default function MessagesPage({
   const router = useRouter();
   const { slug, tenantId } = useTenant();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { setHasUnreadMessages } = useUnreadMessages();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +70,12 @@ export default function MessagesPage({
     if (!isAuthenticated || !user?.id) return;
     void loadConversations();
   }, [isAuthenticated, loadConversations, user?.id]);
+
+  useEffect(() => {
+    setHasUnreadMessages(
+      conversations.some((conversation) => Number(conversation.unreadCount) > 0),
+    );
+  }, [conversations, setHasUnreadMessages]);
 
   const handleConversationUpdated = useCallback(
     (update: ConversationListUpdate) => {
