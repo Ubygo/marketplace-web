@@ -7,6 +7,7 @@ import {
   logoutUser,
   registerUser,
 } from "@/lib/auth";
+import { disconnectSocket } from "@/lib/chat-socket";
 import { getStoredSession, storeSession } from "@/lib/auth-session";
 import type {
   LoginCredentials,
@@ -115,6 +116,7 @@ export function AuthProvider({ tenantId, slug, children }: AuthProviderProps) {
   );
 
   const logout = useCallback(() => {
+    disconnectSocket();
     logoutUser(slug);
     setUser(null);
   }, [slug]);

@@ -41,6 +41,7 @@ export interface ConversationListUpdate {
   conversationId: string;
   lastMessage?: { content: string };
   clearUnread?: boolean;
+  incrementUnread?: boolean;
 }
 
 export interface Message {

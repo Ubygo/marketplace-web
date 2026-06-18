@@ -6,31 +6,10 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function POST(request: NextRequest, context: RouteContext) {
   const tenantId = request.headers.get("x-tenant-id");
   const authorization = request.headers.get("authorization");
-  const { id } = await context.params;
-
-  if (!tenantId || !authorization) {
-    return NextResponse.json({ message: "Non authentifié." }, { status: 401 });
-  }
-
-  const res = await fetch(`${API_BASE_URL}/vendors/${id}`, {
-    headers: {
-      Accept: "application/json",
-      "X-Tenant-Id": tenantId,
-      Authorization: authorization,
-    },
-  });
-
-  const payload = await res.json().catch(() => ({}));
-  return NextResponse.json(payload, { status: res.status });
-}
-
-export async function PATCH(request: NextRequest, context: RouteContext) {
-  const tenantId = request.headers.get("x-tenant-id");
-  const authorization = request.headers.get("authorization");
-  const { id } = await context.params;
+  const { id: vendorId } = await context.params;
 
   if (!tenantId || !authorization) {
     return NextResponse.json({ message: "Non authentifié." }, { status: 401 });
@@ -38,8 +17,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const body = await request.json().catch(() => ({}));
 
-  const res = await fetch(`${API_BASE_URL}/vendors/${id}`, {
-    method: "PATCH",
+  const res = await fetch(`${API_BASE_URL}/images/merchants/${vendorId}`, {
+    method: "POST",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -56,13 +35,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 export async function DELETE(request: NextRequest, context: RouteContext) {
   const tenantId = request.headers.get("x-tenant-id");
   const authorization = request.headers.get("authorization");
-  const { id } = await context.params;
+  const { id: imageId } = await context.params;
 
   if (!tenantId || !authorization) {
     return NextResponse.json({ message: "Non authentifié." }, { status: 401 });
   }
 
-  const res = await fetch(`${API_BASE_URL}/vendors/${id}`, {
+  const res = await fetch(`${API_BASE_URL}/images/merchants/${imageId}`, {
     method: "DELETE",
     headers: {
       Accept: "application/json",
@@ -74,6 +53,32 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   if (res.status === 204) {
     return new NextResponse(null, { status: 204 });
   }
+
+  const payload = await res.json().catch(() => ({}));
+  return NextResponse.json(payload, { status: res.status });
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  const tenantId = request.headers.get("x-tenant-id");
+  const authorization = request.headers.get("authorization");
+  const { id: imageId } = await context.params;
+
+  if (!tenantId || !authorization) {
+    return NextResponse.json({ message: "Non authentifié." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => ({}));
+
+  const res = await fetch(`${API_BASE_URL}/images/merchants/${imageId}`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Tenant-Id": tenantId,
+      Authorization: authorization,
+    },
+    body: JSON.stringify(body),
+  });
 
   const payload = await res.json().catch(() => ({}));
   return NextResponse.json(payload, { status: res.status });

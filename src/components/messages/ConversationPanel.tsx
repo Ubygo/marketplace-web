@@ -1,18 +1,16 @@
 "use client";
 
 import CategoryIcon from "@/components/categories/CategoryIcon";
+import TypingIndicator from "@/components/messages/TypingIndicator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
-import { getAccessToken } from "@/lib/auth-session";
+import type { ChatSocketApi } from "@/hooks/useChatSocket";
 import {
-  initChatSocket,
-  joinConversation,
-  leaveConversation,
-  onMessageRead,
-  onNewMessage,
-  onUserTyping,
-  typing,
-} from "@/lib/chat-socket";
+  getConversationIdFromMessage,
+  normalizeIncomingMessage,
+} from "@/lib/chat-message";
+import { initChatSocket, isSocketConnected } from "@/lib/chat-socket";
+import { getAccessToken } from "@/lib/auth-session";
 import { getConversationById } from "@/lib/conversations";
 import {
   getMessages,
@@ -29,34 +27,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ConversationPanelProps {
   conversationId: string;
+  chatSocket: ChatSocketApi;
   onBack?: () => void;
   variant?: "embedded" | "fullscreen";
   onConversationUpdated?: (update: ConversationListUpdate) => void;
-}
-
-function normalizeIncomingMessage(message: Record<string, unknown>): Message | null {
-  if (!message.id || !message.content) {
-    return null;
-  }
-
-  const sender = message.sender as Message["sender"] | undefined;
-
-  return {
-    id: String(message.id),
-    content: String(message.content),
-    messageType: (message.messageType as Message["messageType"]) || "TEXT",
-    mediaUrl: message.mediaUrl as string | undefined,
-    thumbnailUrl: message.thumbnailUrl as string | undefined,
-    fileSize: message.fileSize as number | undefined,
-    isRead: Boolean(message.isRead),
-    createdAt: String(message.createdAt || new Date().toISOString()),
-    sender: sender ?? {
-      id: String(message.senderId || ""),
-      firstName: String(message.senderFirstName || ""),
-      lastName: String(message.senderLastName || ""),
-      photoUrl: String(message.senderPhotoUrl || ""),
-    },
-  };
 }
 
 function getSenderName(sender: Message["sender"]): string {
@@ -65,6 +39,7 @@ function getSenderName(sender: Message["sender"]): string {
 
 export default function ConversationPanel({
   conversationId,
+  chatSocket,
   onBack,
   variant = "embedded",
   onConversationUpdated,
@@ -81,6 +56,8 @@ export default function ConversationPanel({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const shouldSmoothScrollRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingEmitRef = useRef(false);
+  const hideTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const markUnreadMessagesAsRead = useCallback(
     async (items: Message[]) => {
@@ -139,42 +116,53 @@ export default function ConversationPanel({
 
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (!container || messages.length === 0) return;
+    if (!container || (messages.length === 0 && !isTyping)) return;
 
     container.scrollTo({
       top: container.scrollHeight,
       behavior: shouldSmoothScrollRef.current ? "smooth" : "auto",
     });
     shouldSmoothScrollRef.current = true;
-  }, [messages]);
+  }, [messages, isTyping]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const token = getAccessToken(slug);
-    if (!token || !isAuthenticated) return;
+    if (!token) return;
 
     const socket = initChatSocket(token);
     if (!socket) return;
 
-    const handleConnect = () => {
-      joinConversation(conversationId);
-    };
+    const unsubscribeNewMessage = chatSocket.onNewMessage((rawMessage) => {
+      const messageConversationId = getConversationIdFromMessage(rawMessage);
+      if (messageConversationId && messageConversationId !== conversationId) {
+        return;
+      }
 
-    if (socket.connected) {
-      joinConversation(conversationId);
-    } else {
-      socket.on("connect", handleConnect);
-    }
-
-    const unsubscribeNewMessage = onNewMessage((rawMessage) => {
-      const message = normalizeIncomingMessage(
-        rawMessage as Record<string, unknown>,
-      );
+      const message = normalizeIncomingMessage(rawMessage);
       if (!message) return;
 
       setMessages((current) => {
         if (current.some((item) => item.id === message.id)) {
           return current;
         }
+
+        if (user && message.sender.id === user.id) {
+          const tempIndex = current.findIndex(
+            (item) =>
+              item.id.startsWith("temp-") &&
+              item.content === message.content &&
+              item.sender.id === user.id,
+          );
+
+          if (tempIndex !== -1) {
+            const updated = [...current];
+            updated[tempIndex] = message;
+            return updated;
+          }
+        }
+
         return [...current, message];
       });
 
@@ -187,17 +175,45 @@ export default function ConversationPanel({
               clearUnread: true,
             }),
         );
+      } else {
+        onConversationUpdated?.({
+          conversationId,
+          lastMessage: { content: message.content },
+        });
       }
     });
 
-    const unsubscribeTyping = onUserTyping((data) => {
-      if (data.conversationId !== conversationId || data.userId === user?.id) {
+    const unsubscribeTyping = chatSocket.onUserTyping((data) => {
+      if (data.userId === user?.id) {
         return;
       }
-      setIsTyping(data.isTyping);
+
+      const eventConversationId = String(
+        data.conversationId ??
+          (data as { conversation_id?: string }).conversation_id ??
+          "",
+      );
+      if (eventConversationId && eventConversationId !== conversationId) {
+        return;
+      }
+
+      if (hideTypingTimeoutRef.current) {
+        clearTimeout(hideTypingTimeoutRef.current);
+        hideTypingTimeoutRef.current = null;
+      }
+
+      if (data.isTyping) {
+        setIsTyping(true);
+        return;
+      }
+
+      hideTypingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        hideTypingTimeoutRef.current = null;
+      }, 2500);
     });
 
-    const unsubscribeRead = onMessageRead((data) => {
+    const unsubscribeRead = chatSocket.onMessageRead((data) => {
       if (data.conversationId !== conversationId) return;
       setMessages((current) =>
         current.map((message) =>
@@ -208,23 +224,66 @@ export default function ConversationPanel({
       );
     });
 
+    const handleConnect = () => {
+      chatSocket.joinConversation(conversationId);
+    };
+
+    socket.on("connect", handleConnect);
+    if (socket.connected) {
+      chatSocket.joinConversation(conversationId);
+    }
+
     return () => {
       socket.off("connect", handleConnect);
-      leaveConversation(conversationId);
+      chatSocket.leaveConversation(conversationId);
       unsubscribeNewMessage();
       unsubscribeTyping();
       unsubscribeRead();
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (hideTypingTimeoutRef.current) {
+        clearTimeout(hideTypingTimeoutRef.current);
+      }
+      isTypingEmitRef.current = false;
+      setIsTyping(false);
     };
-  }, [conversationId, isAuthenticated, onConversationUpdated, slug, tenantId, user]);
+  }, [
+    chatSocket,
+    conversationId,
+    isAuthenticated,
+    onConversationUpdated,
+    slug,
+    tenantId,
+    user,
+  ]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const content = draft.trim();
-    if (!content || isSending) return;
+    if (!content || isSending || !user) return;
 
     setIsSending(true);
     setDraft("");
-    typing(conversationId, false);
+    chatSocket.typing(conversationId, false);
+    isTypingEmitRef.current = false;
+
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const optimisticMessage: Message = {
+      id: tempId,
+      content,
+      messageType: "TEXT",
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      sender: {
+        id: user.id,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        photoUrl: user.photoUrl || "",
+      },
+    };
+
+    setMessages((current) => [...current, optimisticMessage]);
 
     try {
       const message = await sendMessage(slug, tenantId, conversationId, {
@@ -232,17 +291,19 @@ export default function ConversationPanel({
         messageType: "TEXT",
       });
 
-      setMessages((current) => {
-        if (current.some((item) => item.id === message.id)) {
-          return current;
-        }
-        return [...current, message];
-      });
+      setMessages((current) =>
+        current.map((item) => (item.id === tempId ? message : item)),
+      );
       onConversationUpdated?.({
         conversationId,
         lastMessage: { content: message.content },
       });
+
+      if (isSocketConnected()) {
+        chatSocket.sendMessageViaSocket(conversationId, content);
+      }
     } catch {
+      setMessages((current) => current.filter((item) => item.id !== tempId));
       setDraft(content);
       setError("Impossible d'envoyer le message.");
     } finally {
@@ -257,10 +318,25 @@ export default function ConversationPanel({
       clearTimeout(typingTimeoutRef.current);
     }
 
-    typing(conversationId, true);
-    typingTimeoutRef.current = setTimeout(() => {
-      typing(conversationId, false);
-    }, 1000);
+    if (!isSocketConnected()) return;
+
+    if (value.trim().length > 0) {
+      if (!isTypingEmitRef.current) {
+        chatSocket.typing(conversationId, true);
+        isTypingEmitRef.current = true;
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        chatSocket.typing(conversationId, false);
+        isTypingEmitRef.current = false;
+      }, 3000);
+      return;
+    }
+
+    if (isTypingEmitRef.current) {
+      chatSocket.typing(conversationId, false);
+      isTypingEmitRef.current = false;
+    }
   }
 
   const interlocutor = conversation?.interlocutor;
@@ -270,14 +346,12 @@ export default function ConversationPanel({
     interlocutor?.photoUrl;
   const interlocutorName = interlocutor?.name ?? "Conversation";
   const showSkeleton = isLoading;
-  const isFullscreen = variant === "fullscreen";
+  const lastMessage = messages[messages.length - 1];
+  const showTypingAvatar =
+    !lastMessage || lastMessage.sender.id !== interlocutor?.id;
 
   return (
-    <div
-      className={`flex min-h-0 flex-1 flex-col bg-white ${
-        isFullscreen ? "h-full min-h-[calc(100vh-12rem)]" : "h-full"
-      }`}
-    >
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <div className="flex shrink-0 items-center gap-2.5 border-b border-black/10 px-3 py-2.5 md:px-4">
         {onBack ? (
           <button
@@ -308,16 +382,11 @@ export default function ConversationPanel({
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-black">{interlocutorName}</p>
-          {isTyping ? (
-            <p className="text-[11px] text-emerald-600">
-              {interlocutorName} est en train d&apos;écrire...
-            </p>
-          ) : null}
         </div>
       </div>
 
       {showSkeleton ? (
-        <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-3 md:px-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-3 md:px-4">
           <div className="flex justify-start">
             <div className="h-9 w-2/3 animate-pulse rounded-xl bg-neutral-200" />
           </div>
@@ -331,10 +400,10 @@ export default function ConversationPanel({
       ) : error && !conversation ? (
         <p className="px-3 py-4 text-xs text-red-600 md:px-4">{error}</p>
       ) : (
-        <>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div
             ref={messagesContainerRef}
-            className="flex-1 space-y-2.5 overflow-y-auto px-3 py-3 md:px-4"
+            className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3 py-3 md:px-4"
           >
             {messages.map((message) => {
               const isMine = message.sender.id === user?.id;
@@ -352,7 +421,7 @@ export default function ConversationPanel({
                 >
                   {isMine ? (
                     <div className="flex max-w-[75%] flex-col items-end">
-                      <div className="rounded-xl border border-black/10 bg-white px-3 py-2 text-[13px] leading-snug text-black shadow-sm">
+                      <div className="inline-block max-w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-[13px] leading-snug break-words text-black shadow-sm">
                         {message.content}
                       </div>
                       {message.isRead ? (
@@ -380,11 +449,11 @@ export default function ConversationPanel({
                       ) : (
                         <div className="mt-0.5 h-6 w-6 shrink-0 rounded-full bg-neutral-200" />
                       )}
-                      <div className="min-w-0">
+                      <div className="min-w-0 max-w-full">
                         <p className="mb-0.5 text-[11px] font-medium text-black/55">
                           {getSenderName(message.sender)}
                         </p>
-                        <div className="rounded-xl bg-black/5 px-3 py-2 text-[13px] leading-snug text-black">
+                        <div className="inline-block max-w-full rounded-xl bg-black/5 px-3 py-2 text-[13px] leading-snug break-words text-black">
                           {message.content}
                         </div>
                       </div>
@@ -393,6 +462,14 @@ export default function ConversationPanel({
                 </div>
               );
             })}
+
+            {isTyping ? (
+              <TypingIndicator
+                userName={interlocutorName}
+                userPhotoUrl={avatar}
+                showAvatar={showTypingAvatar}
+              />
+            ) : null}
           </div>
 
           <form
@@ -414,7 +491,7 @@ export default function ConversationPanel({
               Envoyer
             </button>
           </form>
-        </>
+        </div>
       )}
     </div>
   );

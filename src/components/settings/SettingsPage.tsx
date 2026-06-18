@@ -7,6 +7,7 @@ import SettingsProfilePanel from "@/components/settings/SettingsProfilePanel";
 import SettingsSidebar, {
   type SettingsSectionId,
 } from "@/components/settings/SettingsSidebar";
+import VendorProfileForm from "@/components/vendor/profile/VendorProfileForm";
 import SettingsVendorLinkPanel from "@/components/settings/vendor/SettingsVendorLinkPanel";
 import SettingsVendorPayoutPanel from "@/components/settings/vendor/SettingsVendorPayoutPanel";
 import SettingsVendorVisibilityPanel from "@/components/settings/vendor/SettingsVendorVisibilityPanel";
@@ -56,13 +57,7 @@ export default function SettingsPage() {
       case "password":
         return <SettingsPlaceholderPanel title="Mot de passe et sécurité" />;
       case "vendor-profile":
-        return (
-          <SettingsVendorLinkPanel
-            title="Profil entreprise"
-            description="Complétez les informations de votre activité pour être visible auprès des clients."
-            href="/pro/profil"
-          />
-        );
+        return <VendorProfileForm showTitle />;
       case "vendor-availabilities":
         return (
           <SettingsVendorLinkPanel

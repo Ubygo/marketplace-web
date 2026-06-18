@@ -7,7 +7,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { useVendor } from "@/contexts/VendorContext";
+import { useChatSocket } from "@/hooks/useChatSocket";
 import { buildLoginUrl } from "@/lib/auth-url";
+import {
+  getConversationIdFromMessage,
+  normalizeIncomingMessage,
+} from "@/lib/chat-message";
 import {
   getUserConversations,
   getVendorConversations,
@@ -35,6 +40,12 @@ export default function MessagesPage({
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { vendor, hasVendor, isLoading: isVendorLoading } = useVendor();
   const { setHasUnreadMessages } = useUnreadMessages();
+  const chatSocket = useChatSocket({
+    enabled:
+      isAuthenticated &&
+      !isAuthLoading &&
+      (mode === "customer" ? Boolean(user?.id) : Boolean(vendor?.id) && !isVendorLoading),
+  });
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,6 +164,9 @@ export default function MessagesPage({
                 }
               : {}),
             ...(update.clearUnread ? { unreadCount: 0 } : {}),
+            ...(update.incrementUnread
+              ? { unreadCount: Number(conversation.unreadCount) + 1 }
+              : {}),
           };
         });
 
@@ -165,6 +179,40 @@ export default function MessagesPage({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const unsubscribe = chatSocket.onNewMessage((rawMessage) => {
+      const message = normalizeIncomingMessage(rawMessage);
+      if (!message) return;
+
+      const messageConversationId =
+        getConversationIdFromMessage(rawMessage) ?? null;
+      if (!messageConversationId) return;
+
+      const isOpen = messageConversationId === selectedConversationId;
+      const isFromOther = Boolean(user && message.sender.id !== user.id);
+
+      if (isOpen) {
+        return;
+      }
+
+      handleConversationUpdated({
+        conversationId: messageConversationId,
+        lastMessage: { content: message.content },
+        ...(isFromOther ? { incrementUnread: true } : {}),
+      });
+    });
+
+    return unsubscribe;
+  }, [
+    chatSocket,
+    handleConversationUpdated,
+    isAuthenticated,
+    selectedConversationId,
+    user,
+  ]);
 
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
@@ -201,31 +249,33 @@ export default function MessagesPage({
     isAuthLoading || isLoading || (mode === "vendor" && isVendorLoading);
 
   return (
-    <main>
-      <div className="hidden md:block">
+    <main className="overflow-hidden md:h-[calc(100dvh-12rem)] md:max-h-[calc(100dvh-12rem)]">
+      <div className="hidden h-full md:block">
         <MessagesSplitView
           conversations={conversations}
           isLoading={showSkeleton}
           error={error}
           selectedConversationId={selectedConversationId}
+          chatSocket={chatSocket}
           onSelectConversation={handleSelectConversation}
           onConversationUpdated={handleConversationUpdated}
         />
       </div>
 
-      <div className="md:hidden">
+      <div className="h-[calc(100dvh-12rem)] max-h-[calc(100dvh-12rem)] overflow-hidden md:hidden">
         {selectedConversationId ? (
-          <div className="overflow-hidden rounded-xl border border-black/10 bg-white shadow-sm">
+          <div className="flex h-full flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-sm">
             <ConversationPanel
               key={selectedConversationId}
               conversationId={selectedConversationId}
+              chatSocket={chatSocket}
               variant="fullscreen"
               onBack={handleDeselectConversation}
               onConversationUpdated={handleConversationUpdated}
             />
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-black/10 bg-white shadow-sm">
+          <div className="flex h-full flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-sm">
             <ConversationList
               conversations={conversations}
               isLoading={showSkeleton}

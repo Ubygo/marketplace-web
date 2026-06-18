@@ -1,30 +1,74 @@
 import { io, type Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
+let lastToken: string | null = null;
+let lifecycleHandlersAttached = false;
 
-export function initChatSocket(jwtToken: string): Socket | null {
-  if (socket?.connected) {
-    return socket;
+export function getChatApiBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    process.env.EXPO_PUBLIC_API_BASE_URL ??
+    ""
+  );
+}
+
+function attachLifecycleHandlers(sock: Socket): void {
+  if (lifecycleHandlersAttached) {
+    return;
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL;
+  lifecycleHandlersAttached = true;
+
+  sock.on("connect", () => {
+    console.log("Connecté au chat WebSocket");
+  });
+
+  sock.on("connected", (data) => {
+    console.log("Connecté au chat:", data);
+  });
+
+  sock.on("connect_error", (error) => {
+    console.error("Erreur de connexion WebSocket:", error.message);
+  });
+
+  sock.on("error", (err) => {
+    console.error("WebSocket error:", err);
+  });
+
+  sock.on("disconnect", (reason) => {
+    console.log("Déconnecté du chat:", reason);
+  });
+}
+
+export function initChatSocket(jwtToken: string): Socket | null {
+  const baseUrl = getChatApiBaseUrl();
 
   if (!baseUrl) {
     console.error("API base URL is not defined");
     return null;
   }
 
+  if (socket?.connected && lastToken === jwtToken) {
+    return socket;
+  }
+
   if (socket) {
     socket.disconnect();
+    socket = null;
+    lifecycleHandlersAttached = false;
   }
+
+  lastToken = jwtToken;
 
   socket = io(`${baseUrl}/chat`, {
     auth: { token: jwtToken },
-    transports: ["websocket"],
+    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: 5,
   });
+
+  attachLifecycleHandlers(socket);
 
   return socket;
 }
@@ -93,6 +137,8 @@ export function disconnectSocket(): void {
   if (!socket) return;
   socket.disconnect();
   socket = null;
+  lastToken = null;
+  lifecycleHandlersAttached = false;
 }
 
 export function isSocketConnected(): boolean {

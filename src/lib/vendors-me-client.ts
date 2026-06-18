@@ -151,7 +151,12 @@ export async function updateMyVendor(
   slug: string,
   tenantId: string,
   vendorId: string,
-  data: Partial<Pick<Vendor, "visible">>,
+  data: Partial<
+    Pick<
+      Vendor,
+      "name" | "description" | "phoneNumber" | "categoryId" | "visible"
+    >
+  >,
 ): Promise<Vendor> {
   const res = await authenticatedFetch(slug, tenantId, `/api/vendors/${vendorId}`, {
     method: "PATCH",
@@ -164,4 +169,18 @@ export async function updateMyVendor(
 
   const payload = await res.json();
   return normalizeVendor(payload);
+}
+
+export async function deleteMyVendor(
+  slug: string,
+  tenantId: string,
+  vendorId: string,
+): Promise<void> {
+  const res = await authenticatedFetch(slug, tenantId, `/api/vendors/${vendorId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    throw new Error("Impossible de supprimer le compte prestataire.");
+  }
 }
