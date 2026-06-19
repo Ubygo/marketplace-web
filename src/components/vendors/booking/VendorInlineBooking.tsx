@@ -64,12 +64,6 @@ export default function VendorInlineBooking({
     async function refreshVendorSlots() {
       try {
         const refreshed = await fetchPublicVendorById(tenantId, vendor.id);
-        console.log("[VendorInlineBooking] disponibilités vendeur (refresh client)", {
-          vendorId: vendor.id,
-          ssrSlots: vendor.availability?.slots ?? [],
-          refreshedAvailability: refreshed?.availability,
-          refreshedSlots: refreshed?.availability?.slots ?? [],
-        });
         if (isMounted && refreshed?.availability?.slots) {
           setVendorSlots(refreshed.availability.slots);
         }

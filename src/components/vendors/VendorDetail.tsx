@@ -96,17 +96,6 @@ export default function VendorDetail({
   );
 
   useEffect(() => {
-    console.log("[VendorDetail] disponibilités vendeur", {
-      vendorId: vendor.id,
-      vendorName: vendor.name,
-      availability: vendor.availability,
-      slots: vendor.availability?.slots ?? [],
-      activeSlots:
-        vendor.availability?.slots?.filter((slot) => slot.active) ?? [],
-    });
-  }, [vendor]);
-
-  useEffect(() => {
     if (!hasServices && selectedTab === "services") {
       setSelectedTab("about");
     }

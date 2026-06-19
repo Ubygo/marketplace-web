@@ -1,6 +1,11 @@
 import VendorDetail from "@/components/vendors/VendorDetail";
+import VendorJsonLd from "@/components/vendors/VendorJsonLd";
 import { fetchCategories } from "@/lib/categories";
 import { getTenantAppConfig } from "@/lib/get-tenant-app-config";
+import {
+  buildVendorMetadata,
+  getSiteOrigin,
+} from "@/lib/seo/metadata";
 import { fetchServicesByVendorId } from "@/lib/services";
 import { fetchVendorById } from "@/lib/vendors";
 import type { Metadata } from "next";
@@ -21,16 +26,21 @@ export async function generateMetadata({
     return {};
   }
 
-  const vendor = await fetchVendorById(config.tenantId, id);
+  const [vendor, origin, categories] = await Promise.all([
+    fetchVendorById(config.tenantId, id),
+    getSiteOrigin(),
+    fetchCategories(config.tenantId),
+  ]);
 
   if (!vendor) {
     return {};
   }
 
-  return {
-    title: vendor.name,
-    description: vendor.description ?? undefined,
-  };
+  const categoryName = categories.find(
+    (category) => category.id === vendor.categoryId,
+  )?.name;
+
+  return buildVendorMetadata(vendor, config, origin, categoryName);
 }
 
 export default async function VendorPage({ params, searchParams }: VendorPageProps) {
@@ -42,6 +52,7 @@ export default async function VendorPage({ params, searchParams }: VendorPagePro
     notFound();
   }
 
+  const origin = await getSiteOrigin();
   const vendor = await fetchVendorById(config.tenantId, id);
 
   if (!vendor) {
@@ -53,15 +64,26 @@ export default async function VendorPage({ params, searchParams }: VendorPagePro
     fetchCategories(config.tenantId),
   ]);
 
+  const categoryName = categories.find(
+    (category) => category.id === vendor.categoryId,
+  )?.name;
+
   return (
-    <VendorDetail
-      vendor={vendor}
-      services={services}
-      categories={categories}
-      currency={config.currency}
-      tenantId={config.tenantId}
-      initialServiceId={serviceId}
-      initialBookMode={book === "1"}
-    />
+    <>
+      <VendorJsonLd
+        vendor={vendor}
+        origin={origin}
+        categoryName={categoryName}
+      />
+      <VendorDetail
+        vendor={vendor}
+        services={services}
+        categories={categories}
+        currency={config.currency}
+        tenantId={config.tenantId}
+        initialServiceId={serviceId}
+        initialBookMode={book === "1"}
+      />
+    </>
   );
 }
