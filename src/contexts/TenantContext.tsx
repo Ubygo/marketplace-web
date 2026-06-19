@@ -11,6 +11,7 @@ interface TenantContextValue {
   currency: string;
   features: TenantFeatures | null;
   payoutMode: string | null;
+  payoutFrequency: string | null;
   escrowEnabled: boolean;
   stripePublishableKey: string | null;
   mapboxPublicToken: string | null;
@@ -29,6 +30,7 @@ interface TenantProviderProps {
   currency?: string;
   features?: TenantFeatures | null;
   payoutMode?: string | null;
+  payoutFrequency?: string | null;
   escrowEnabled?: boolean;
   stripePublishableKey?: string | null;
   mapboxPublicToken?: string | null;
@@ -46,6 +48,7 @@ export function TenantProvider({
   currency = "EUR",
   features = null,
   payoutMode = null,
+  payoutFrequency = null,
   escrowEnabled = false,
   stripePublishableKey = null,
   mapboxPublicToken = null,
@@ -64,6 +67,7 @@ export function TenantProvider({
         currency,
         features,
         payoutMode,
+        payoutFrequency,
         escrowEnabled,
         stripePublishableKey,
         mapboxPublicToken,

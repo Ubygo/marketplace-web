@@ -1,6 +1,5 @@
 "use client";
 
-import HeaderDrawer, { type HeaderNavItem } from "@/components/header/HeaderDrawer";
 import HeaderAuthButton from "@/components/header/HeaderAuthButton";
 import HeaderUserMenu from "@/components/header/HeaderUserMenu";
 import HeaderVendorButton from "@/components/header/HeaderVendorButton";
@@ -10,15 +9,12 @@ import {
   HeaderSearchMobilePanel,
   MobileSearchProvider,
 } from "@/components/header/HeaderSearch";
-import CategoryIcon from "@/components/categories/CategoryIcon";
 import ContentContainer from "@/components/layout/ContentContainer";
 import { useAuth } from "@/contexts/AuthContext";
-import { TEXT_COLOR } from "@/constants/theme";
 import type { TenantBranding } from "@/lib/app-config";
 import { useIsProMode } from "@/hooks/useIsProMode";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 
 interface AppHeaderProps {
   branding: TenantBranding;
@@ -26,32 +22,10 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ branding, name }: AppHeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const isProMode = useIsProMode();
   const displayName = branding.displayName || name;
   const { logoUrl, primaryColor } = branding;
-
-  const drawerItems = useMemo<HeaderNavItem[]>(() => {
-    if (isLoading || isAuthenticated) {
-      return [];
-    }
-
-    return [{ href: "/login", label: "Connexion", mobileOnly: true }];
-  }, [isAuthenticated, isLoading]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 768px)");
-
-    function handleChange() {
-      if (mediaQuery.matches) {
-        setMenuOpen(false);
-      }
-    }
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
 
   return (
     <MobileSearchProvider>
@@ -91,28 +65,13 @@ export default function AppHeader({ branding, name }: AppHeaderProps) {
             ) : (
               <>
                 <HeaderAuthButton primaryColor={primaryColor} />
-                <button
-                  type="button"
-                  aria-label="Menu"
-                  aria-expanded={menuOpen}
-                  onClick={() => setMenuOpen(true)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white md:hidden"
-                >
-                  <CategoryIcon icon="Ionicons/menu" size={22} color={TEXT_COLOR} />
-                </button>
+                <HeaderUserMenu primaryColor={primaryColor} />
               </>
             )}
           </div>
         </ContentContainer>
 
         {!isProMode ? <HeaderSearchMobilePanel /> : null}
-
-        <HeaderDrawer
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          primaryColor={primaryColor}
-          items={drawerItems}
-        />
       </header>
     </MobileSearchProvider>
   );

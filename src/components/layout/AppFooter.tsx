@@ -4,6 +4,7 @@ import ContentContainer from "@/components/layout/ContentContainer";
 import { APP_BACKGROUND_COLOR } from "@/constants/theme";
 import { UBYGO_HOME_URL } from "@/constants/urls";
 import { useTenant } from "@/contexts/TenantContext";
+import { useIsProMode } from "@/hooks/useIsProMode";
 import type { TenantBranding } from "@/lib/app-config";
 
 interface AppFooterProps {
@@ -13,12 +14,13 @@ interface AppFooterProps {
 
 export default function AppFooter({ branding, name }: AppFooterProps) {
   const { privacyPolicyUrl, cgvUrl } = useTenant();
+  const isProMode = useIsProMode();
   const displayName = branding.displayName || name;
   const currentYear = new Date().getFullYear();
 
   return (
     <footer
-      className="mt-auto text-black"
+      className={`mt-auto text-black ${isProMode ? "hidden md:block" : ""}`}
       style={{ backgroundColor: APP_BACKGROUND_COLOR }}
     >
       <ContentContainer className="flex flex-col gap-4 py-8 md:flex-row md:items-start md:justify-between md:gap-6">

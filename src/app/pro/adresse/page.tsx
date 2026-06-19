@@ -1,10 +1,6 @@
-import VendorPlaceholderPage from "@/components/vendor/VendorPlaceholderPage";
+import { PRO_SETTINGS_ADDRESS_URL } from "@/lib/settings-url";
+import { redirect } from "next/navigation";
 
 export default function ProAddressPage() {
-  return (
-    <VendorPlaceholderPage
-      title="Adresse"
-      description="Indiquez l'adresse où vous exercez votre activité."
-    />
-  );
+  redirect(PRO_SETTINGS_ADDRESS_URL);
 }

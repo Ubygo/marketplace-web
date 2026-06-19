@@ -1,10 +1,6 @@
-import VendorPlaceholderPage from "@/components/vendor/VendorPlaceholderPage";
+import { PRO_SETTINGS_PAYOUT_URL } from "@/lib/settings-url";
+import { redirect } from "next/navigation";
 
 export default function ProStripePage() {
-  return (
-    <VendorPlaceholderPage
-      title="Configuration Stripe"
-      description="Finalisez la configuration de votre compte Stripe Connect."
-    />
-  );
+  redirect(PRO_SETTINGS_PAYOUT_URL);
 }

@@ -23,6 +23,7 @@ interface TenantShellProps {
   currency?: string;
   features?: TenantFeatures | null;
   payoutMode?: string | null;
+  payoutFrequency?: string | null;
   escrowEnabled?: boolean;
   stripePublishableKey?: string | null;
   mapboxPublicToken?: string | null;
@@ -50,6 +51,7 @@ export default function TenantShell({
   currency = "EUR",
   features = null,
   payoutMode = null,
+  payoutFrequency = null,
   escrowEnabled = false,
   stripePublishableKey = null,
   mapboxPublicToken = null,
@@ -67,6 +69,7 @@ export default function TenantShell({
       currency={currency}
       features={features}
       payoutMode={payoutMode}
+      payoutFrequency={payoutFrequency}
       escrowEnabled={escrowEnabled}
       stripePublishableKey={stripePublishableKey}
       mapboxPublicToken={mapboxPublicToken}

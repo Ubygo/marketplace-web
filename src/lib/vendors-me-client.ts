@@ -66,6 +66,32 @@ function extractOrders(payload: unknown): Order[] {
   return [];
 }
 
+export interface CreateMyVendorRequest {
+  name: string;
+  description?: string;
+  phoneNumber?: string;
+  visible?: boolean;
+  status?: "active" | "inactive";
+}
+
+export async function createMyVendor(
+  slug: string,
+  tenantId: string,
+  data: CreateMyVendorRequest,
+): Promise<Vendor> {
+  const res = await authenticatedFetch(slug, tenantId, "/api/vendors", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error("Impossible de créer le compte prestataire.");
+  }
+
+  const payload = await res.json();
+  return normalizeVendor(payload);
+}
+
 export async function fetchMyVendor(
   slug: string,
   tenantId: string,
@@ -154,7 +180,13 @@ export async function updateMyVendor(
   data: Partial<
     Pick<
       Vendor,
-      "name" | "description" | "phoneNumber" | "categoryId" | "visible"
+      | "name"
+      | "description"
+      | "phoneNumber"
+      | "categoryId"
+      | "visible"
+      | "iban"
+      | "bankAccountHolderName"
     >
   >,
 ): Promise<Vendor> {

@@ -2,6 +2,7 @@ import TenantShell from "@/components/layout/TenantShell";
 import ContentContainer from "@/components/layout/ContentContainer";
 import { APP_BACKGROUND_COLOR } from "@/constants/theme";
 import { getTenantAppConfig } from "@/lib/get-tenant-app-config";
+import { resolveMapboxPublicToken } from "@/lib/mapbox-config";
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
@@ -46,9 +47,10 @@ export default async function RootLayout({
             currency={config.currency}
             features={config.features}
             payoutMode={config.payoutMode ?? null}
+            payoutFrequency={config.payoutFrequency ?? null}
             escrowEnabled={config.escrowEnabled ?? false}
             stripePublishableKey={config.stripePublishableKey}
-            mapboxPublicToken={config.mapboxPublicToken}
+            mapboxPublicToken={resolveMapboxPublicToken(config.mapboxPublicToken)}
             privacyPolicyUrl={config.privacyPolicyUrl}
             cgvUrl={config.cgvUrl}
             supportEmail={config.supportEmail}

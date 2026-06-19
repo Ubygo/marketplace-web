@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUnreadMessages } from "@/contexts/UnreadMessagesContext";
 import { useVendor } from "@/contexts/VendorContext";
 import { useIsProMode } from "@/hooks/useIsProMode";
+import { useTenantVendorMode } from "@/hooks/useTenantVendorMode";
 import { getUserInitials } from "@/lib/user-display";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -38,6 +39,11 @@ const VENDOR_CLIENT_MENU_ITEM = {
 
 const PRO_MENU_ITEMS = [
   { href: "/pro", label: "Tableau de bord", icon: "Ionicons/grid-outline" },
+  {
+    href: "/pro/prestations",
+    label: "Prestations",
+    icon: "Ionicons/briefcase-outline",
+  },
   {
     href: "/pro/messages",
     label: "Messages",
@@ -115,6 +121,7 @@ export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
   const { hasUnreadMessages, refreshUnreadMessages } = useUnreadMessages();
   const { hasVendor, isLoading: isVendorLoading } = useVendor();
   const isProMode = useIsProMode();
+  const { isPublicVendorSignup } = useTenantVendorMode();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -152,18 +159,20 @@ export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
     void refreshUnreadMessages();
   }, [open, refreshUnreadMessages, user]);
 
-  if (!user) {
-    return null;
-  }
-
-  const menuItems = isProMode
-    ? PRO_MENU_ITEMS
-    : [
-        ...(hasVendor && !isVendorLoading ? [VENDOR_CLIENT_MENU_ITEM] : []),
-        ...CLIENT_MENU_ITEMS,
-      ];
+  const menuItems = user
+    ? isProMode
+      ? PRO_MENU_ITEMS
+      : [
+          ...(hasVendor && !isVendorLoading ? [VENDOR_CLIENT_MENU_ITEM] : []),
+          ...CLIENT_MENU_ITEMS,
+        ]
+    : [];
 
   const messagesHref = isProMode ? "/pro/messages" : "/messages";
+  const showBecomeVendor =
+    !isProMode &&
+    isPublicVendorSignup &&
+    (!user || (!hasVendor && !isVendorLoading));
 
   function closeMenu() {
     setOpen(false);
@@ -183,13 +192,15 @@ export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
   return (
     <>
       <div ref={containerRef} className="relative flex items-center gap-2">
-        <div
-          aria-label="Profil utilisateur"
-          className="flex h-10 w-10 shrink-0 cursor-default items-center justify-center rounded-full text-sm font-bold text-white"
-          style={{ backgroundColor: primaryColor }}
-        >
-          {getUserInitials(user)}
-        </div>
+        {user ? (
+          <div
+            aria-label="Profil utilisateur"
+            className="flex h-10 w-10 shrink-0 cursor-default items-center justify-center rounded-full text-sm font-bold text-white"
+            style={{ backgroundColor: primaryColor }}
+          >
+            {getUserInitials(user)}
+          </div>
+        ) : null}
 
         <button
           type="button"
@@ -217,7 +228,16 @@ export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
               />
             ))}
 
-            <div className="my-2 border-t border-black/10" />
+            {user ? <div className="my-2 border-t border-black/10" /> : null}
+
+            {showBecomeVendor ? (
+              <MenuLink
+                href="/devenir-prestataire"
+                icon="Ionicons/briefcase-outline"
+                label="Devenir prestataire"
+                onNavigate={closeMenu}
+              />
+            ) : null}
 
             <MenuLink
               href="/aide"
@@ -226,27 +246,44 @@ export default function HeaderUserMenu({ primaryColor }: HeaderUserMenuProps) {
               onNavigate={closeMenu}
             />
 
-            <div className="my-2 border-t border-black/10" />
+            {user ? (
+              <>
+                <div className="my-2 border-t border-black/10" />
 
-            <MenuButton
-              icon="Ionicons/log-out-outline"
-              label="Déconnexion"
-              onClick={handleLogoutRequest}
-            />
+                <MenuButton
+                  icon="Ionicons/log-out-outline"
+                  label="Déconnexion"
+                  onClick={handleLogoutRequest}
+                />
+              </>
+            ) : (
+              <>
+                <div className="my-2 border-t border-black/10" />
+
+                <MenuLink
+                  href="/login"
+                  icon="Ionicons/log-in-outline"
+                  label="Se connecter"
+                  onNavigate={closeMenu}
+                />
+              </>
+            )}
           </nav>
         ) : null}
       </div>
 
-      <ConfirmDialog
-        open={showLogoutConfirm}
-        title="Se déconnecter ?"
-        description="Voulez-vous vraiment vous déconnecter de votre compte ?"
-        confirmLabel="Déconnexion"
-        cancelLabel="Annuler"
-        destructive
-        onConfirm={handleLogoutConfirm}
-        onCancel={() => setShowLogoutConfirm(false)}
-      />
+      {user ? (
+        <ConfirmDialog
+          open={showLogoutConfirm}
+          title="Se déconnecter ?"
+          description="Voulez-vous vraiment vous déconnecter de votre compte ?"
+          confirmLabel="Déconnexion"
+          cancelLabel="Annuler"
+          destructive
+          onConfirm={handleLogoutConfirm}
+          onCancel={() => setShowLogoutConfirm(false)}
+        />
+      ) : null}
     </>
   );
 }

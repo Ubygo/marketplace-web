@@ -7,24 +7,34 @@ import SettingsProfilePanel from "@/components/settings/SettingsProfilePanel";
 import SettingsSidebar, {
   type SettingsSectionId,
 } from "@/components/settings/SettingsSidebar";
+import VendorAddressPanel from "@/components/vendor/address/VendorAddressPanel";
 import VendorProfileForm from "@/components/vendor/profile/VendorProfileForm";
 import SettingsVendorLinkPanel from "@/components/settings/vendor/SettingsVendorLinkPanel";
 import SettingsVendorPayoutPanel from "@/components/settings/vendor/SettingsVendorPayoutPanel";
 import SettingsVendorVisibilityPanel from "@/components/settings/vendor/SettingsVendorVisibilityPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildLoginUrl } from "@/lib/auth-url";
+import { isSettingsSectionId } from "@/lib/settings-url";
 import { useIsProMode } from "@/hooks/useIsProMode";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading, logout } = useAuth();
   const isProMode = useIsProMode();
   const [activeSection, setActiveSection] =
     useState<SettingsSectionId>("profile");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  useEffect(() => {
+    const section = searchParams.get("section");
+    if (section && isSettingsSectionId(section)) {
+      setActiveSection(section);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -67,13 +77,7 @@ export default function SettingsPage() {
           />
         );
       case "vendor-address":
-        return (
-          <SettingsVendorLinkPanel
-            title="Adresse"
-            description="Indiquez l'adresse où vous exercez votre activité."
-            href="/pro/adresse"
-          />
-        );
+        return <VendorAddressPanel showTitle />;
       case "vendor-payout":
         return <SettingsVendorPayoutPanel />;
       case "vendor-reviews":

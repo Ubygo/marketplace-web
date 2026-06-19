@@ -9,11 +9,13 @@ import VendorStatsSection from "@/components/vendor/dashboard/VendorStatsSection
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { useVendor } from "@/contexts/VendorContext";
+import { useTenantVendorMode } from "@/hooks/useTenantVendorMode";
 import { useVendorApprovalGate } from "@/hooks/useVendorApprovalGate";
 import { buildLoginUrl } from "@/lib/auth-url";
 import { buildOnboardingSteps } from "@/lib/vendor-onboarding-steps";
 import { fetchOnboardingSteps } from "@/lib/vendors-me-client";
-import type { OnboardingStep } from "@/types/vendor";
+import { fetchStripeRequirements } from "@/lib/vendor-stripe-client";
+import type { OnboardingStep, StripeRequirementsResolution } from "@/types/vendor";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -24,8 +26,11 @@ export default function VendorDashboardPage() {
   const { vendor, hasVendor, isLoading: isVendorLoading, refreshVendor } =
     useVendor();
   const { isPendingApproval } = useVendorApprovalGate();
+  const { isPublicVendorSignup } = useTenantVendorMode();
   const [onboardingSteps, setOnboardingSteps] = useState<OnboardingStep[]>([]);
   const [isLoadingSteps, setIsLoadingSteps] = useState(false);
+  const [stripeResolution, setStripeResolution] =
+    useState<StripeRequirementsResolution>("none");
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
@@ -35,15 +40,40 @@ export default function VendorDashboardPage() {
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated && !isVendorLoading && !hasVendor) {
-      router.replace("/");
+      router.replace(
+        isPublicVendorSignup ? "/devenir-prestataire" : "/",
+      );
     }
-  }, [hasVendor, isAuthenticated, isAuthLoading, isVendorLoading, router]);
+  }, [
+    hasVendor,
+    isAuthenticated,
+    isAuthLoading,
+    isPublicVendorSignup,
+    isVendorLoading,
+    router,
+  ]);
 
   const loadOnboardingSteps = useCallback(async () => {
     if (!vendor?.id || isPendingApproval) return;
 
     try {
       setIsLoadingSteps(true);
+
+      if (payoutMode === "STRIPE_CONNECT") {
+        try {
+          const stripeRequirements = await fetchStripeRequirements(
+            slug,
+            tenantId,
+            vendor.id,
+          );
+          setStripeResolution(stripeRequirements.resolution);
+        } catch {
+          setStripeResolution("none");
+        }
+      } else {
+        setStripeResolution("none");
+      }
+
       const response = await fetchOnboardingSteps(slug, tenantId, vendor.id);
       setOnboardingSteps(response.steps);
     } catch {
@@ -51,7 +81,7 @@ export default function VendorDashboardPage() {
     } finally {
       setIsLoadingSteps(false);
     }
-  }, [vendor?.id, isPendingApproval, slug, tenantId]);
+  }, [vendor?.id, isPendingApproval, payoutMode, slug, tenantId]);
 
   useEffect(() => {
     if (!vendor?.id) return;
@@ -62,8 +92,8 @@ export default function VendorDashboardPage() {
   }, [vendor?.id, isPendingApproval, loadOnboardingSteps, refreshVendor]);
 
   const steps = useMemo(
-    () => buildOnboardingSteps(onboardingSteps, payoutMode),
-    [onboardingSteps, payoutMode],
+    () => buildOnboardingSteps(onboardingSteps, payoutMode, stripeResolution),
+    [onboardingSteps, payoutMode, stripeResolution],
   );
 
   const completedStepsCount = steps.filter((step) => step.completed).length;

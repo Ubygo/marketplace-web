@@ -31,6 +31,30 @@ export type StripeRequirementsResolution =
   | "pending_verification"
   | "none";
 
+export type StripeRequirementsStatus =
+  | "pending"
+  | "enabled"
+  | "disabled";
+
+export interface StripeAccountRequirements {
+  past_due: string[];
+  currently_due: string[];
+  eventually_due: string[];
+  pending_verification: string[];
+  disabled_reason: string | null;
+}
+
+export interface StripeRequirementsResponse {
+  status: StripeRequirementsStatus;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  requirements: StripeAccountRequirements;
+  hasRequirements: boolean;
+  resolution: StripeRequirementsResolution;
+  resolutionDescription: string;
+}
+
 export interface Vendor {
   id: string;
   name: string;

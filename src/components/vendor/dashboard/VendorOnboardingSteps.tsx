@@ -1,7 +1,14 @@
+"use client";
+
 import CategoryIcon from "@/components/categories/CategoryIcon";
 import { TEXT_COLOR } from "@/constants/theme";
+import { useTenant } from "@/contexts/TenantContext";
+import { useVendor } from "@/contexts/VendorContext";
 import type { VendorOnboardingStepView } from "@/lib/vendor-onboarding-steps";
+import { openStripeResolvedLink } from "@/lib/vendor-stripe-client";
 import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface VendorOnboardingStepsProps {
   steps: VendorOnboardingStepView[];
@@ -14,6 +21,30 @@ export default function VendorOnboardingSteps({
   primaryColor,
   isLoading = false,
 }: VendorOnboardingStepsProps) {
+  const { slug, tenantId } = useTenant();
+  const { vendor } = useVendor();
+  const [openingStripeStepId, setOpeningStripeStepId] = useState<number | null>(
+    null,
+  );
+
+  async function handleStripeStep(step: VendorOnboardingStepView) {
+    if (!vendor?.id || openingStripeStepId !== null) return;
+
+    setOpeningStripeStepId(step.id);
+
+    try {
+      await openStripeResolvedLink(slug, tenantId, vendor.id);
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Impossible d'ouvrir Stripe.",
+      );
+    } finally {
+      setOpeningStripeStepId(null);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -25,6 +56,12 @@ export default function VendorOnboardingSteps({
   return (
     <div className="flex flex-col gap-2">
       {steps.map((step) => {
+        const isInteractive =
+          !step.completed &&
+          (step.action === "stripe" || Boolean(step.href));
+        const showChevron =
+          isInteractive && step.action !== "stripe";
+
         const content = (
           <>
             <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -60,17 +97,22 @@ export default function VendorOnboardingSteps({
                 </p>
               </div>
             </div>
-            {!step.completed && step.href ? (
+            {showChevron ? (
               <CategoryIcon
                 icon="Ionicons/chevron-forward"
                 size={20}
                 color={TEXT_COLOR}
               />
             ) : null}
+            {step.action === "stripe" && !step.completed ? (
+              <span className="text-xs font-semibold text-black/50">
+                {openingStripeStepId === step.id ? "Ouverture..." : "Ouvrir"}
+              </span>
+            ) : null}
           </>
         );
 
-        if (step.completed || !step.href) {
+        if (step.completed || !isInteractive) {
           return (
             <div
               key={step.id}
@@ -88,10 +130,24 @@ export default function VendorOnboardingSteps({
           );
         }
 
+        if (step.action === "stripe") {
+          return (
+            <button
+              key={step.id}
+              type="button"
+              onClick={() => void handleStripeStep(step)}
+              disabled={openingStripeStepId !== null}
+              className="flex w-full items-center justify-between rounded-xl border border-dashed border-black/20 bg-white p-3 text-left transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {content}
+            </button>
+          );
+        }
+
         return (
           <Link
             key={step.id}
-            href={step.href}
+            href={step.href!}
             className="flex items-center justify-between rounded-xl border border-dashed border-black/20 bg-white p-3 transition-colors hover:bg-neutral-50"
           >
             {content}

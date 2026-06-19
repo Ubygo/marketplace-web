@@ -59,5 +59,6 @@ export async function fetchAppConfig(slug: string): Promise<AppConfig> {
     throw new Error(`Failed to load app config (${res.status}): ${body}`);
   }
 
+  // console.log("app config", await res.json());
   return (await res.json()) as AppConfig;
 }
