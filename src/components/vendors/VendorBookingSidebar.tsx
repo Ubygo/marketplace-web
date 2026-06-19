@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { TEXT_COLOR } from "@/constants/theme";
-import { useBookingFlow } from "@/hooks/useBookingFlow";
+import VendorInlineBooking from "@/components/vendors/booking/VendorInlineBooking";
 import { buildLoginUrl } from "@/lib/auth-url";
 import { formatPrice } from "@/lib/format-price";
 import { getPrimaryServiceImageUrl } from "@/lib/service-display";
@@ -11,13 +11,20 @@ import type { Vendor } from "@/types/vendor";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 
 interface VendorBookingSidebarProps {
   vendor: Vendor;
   services: Service[];
   currency: string;
   selectedServiceId: string | null;
+  bookingServiceId: string | null;
   onSelectService: (serviceId: string) => void;
+  onExitBooking: () => void;
+  onBook: (serviceId: string) => void;
+  isBookingLoading: boolean;
+  isStripeEnabled: boolean;
+  directPaymentModal: ReactNode;
 }
 
 function ServiceOption({
@@ -92,13 +99,17 @@ export default function VendorBookingSidebar({
   services,
   currency,
   selectedServiceId,
+  bookingServiceId,
   onSelectService,
+  onExitBooking,
+  onBook,
+  isBookingLoading,
+  isStripeEnabled,
+  directPaymentModal,
 }: VendorBookingSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
-  const { handleBook, isLoading, isStripeEnabled, paymentModal } =
-    useBookingFlow(vendor.id);
 
   const currentPath =
     searchParams.toString().length > 0
@@ -116,6 +127,22 @@ export default function VendorBookingSidebar({
     );
   }
 
+  const bookingService = bookingServiceId
+    ? services.find((service) => service.id === bookingServiceId)
+    : undefined;
+
+  if (bookingService) {
+    return (
+      <VendorInlineBooking
+        vendor={vendor}
+        service={bookingService}
+        currency={currency}
+        variant="sidebar"
+        onBack={onExitBooking}
+      />
+    );
+  }
+
   const selectedService =
     services.find((service) => service.id === selectedServiceId) ??
     services[0];
@@ -123,7 +150,7 @@ export default function VendorBookingSidebar({
     ? selectedService.currency.toUpperCase()
     : currency;
   const isDisabled =
-    !isStripeEnabled || selectedService.price <= 0 || isLoading;
+    !isStripeEnabled || selectedService.price <= 0 || isBookingLoading;
   const showPicker = services.length > 1;
   const selectedServiceImageUrl = getPrimaryServiceImageUrl(selectedService);
 
@@ -196,11 +223,11 @@ export default function VendorBookingSidebar({
             <button
               type="button"
               disabled={isDisabled}
-              onClick={() => void handleBook(selectedService.id)}
+              onClick={() => onBook(selectedService.id)}
               className="block w-full rounded-full py-3.5 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               style={{ backgroundColor: TEXT_COLOR }}
             >
-              {isLoading ? "Chargement..." : "Réserver"}
+              {isBookingLoading ? "Chargement..." : "Réserver"}
             </button>
           ) : (
             <Link
@@ -233,7 +260,7 @@ export default function VendorBookingSidebar({
           ) : null}
         </div>
       </div>
-      {paymentModal}
+      {directPaymentModal}
     </>
   );
 }

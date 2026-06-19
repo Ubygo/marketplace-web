@@ -12,6 +12,11 @@ export default async function LegacyReserverPage({
   const { id: vendorId } = await params;
   const { serviceId } = await searchParams;
 
-  const query = serviceId ? `?serviceId=${encodeURIComponent(serviceId)}` : "";
-  redirect(`/vendor/${vendorId}/reserver${query}`);
+  if (!serviceId) {
+    redirect(`/vendor/${vendorId}`);
+  }
+
+  redirect(
+    `/vendor/${vendorId}?serviceId=${encodeURIComponent(serviceId)}&book=1`,
+  );
 }

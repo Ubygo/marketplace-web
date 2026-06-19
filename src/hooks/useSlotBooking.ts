@@ -1,18 +1,13 @@
 "use client";
 
-import AtClientAddressSearch, {
+import {
   buildClientLocation,
   type MapboxFeature,
 } from "@/components/booking/AtClientAddressSearch";
-import BookingCalendar from "@/components/booking/BookingCalendar";
-import BookingTimeSlots, {
-  type LocalAvailableSlot,
-} from "@/components/booking/BookingTimeSlots";
-import { TEXT_COLOR } from "@/constants/theme";
+import type { LocalAvailableSlot } from "@/components/booking/BookingTimeSlots";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { usePayment } from "@/hooks/usePayment";
-import { buildLoginUrl } from "@/lib/auth-url";
 import {
   formatDateToYYYYMMDD,
   formatUtcToTimeInTimeZone,
@@ -24,21 +19,12 @@ import {
   getServiceAvailableSlots,
 } from "@/lib/checkout";
 import type { Service } from "@/types/service";
-import type { Vendor } from "@/types/vendor";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-interface BookingPageProps {
-  vendor: Vendor;
-  service: Service;
-}
-
-export default function BookingPage({ vendor, service }: BookingPageProps) {
-  const router = useRouter();
+export function useSlotBooking(service: Service) {
   const { slug, tenantId } = useTenant();
-  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { startPayment, isCreatingOrder, paymentModal } = usePayment();
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -58,23 +44,21 @@ export default function BookingPage({ vendor, service }: BookingPageProps) {
     }>;
   } | null>(null);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [slotsLoadError, setSlotsLoadError] = useState<string | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<MapboxFeature | null>(
     null,
   );
   const [bookingNotes, setBookingNotes] = useState("");
 
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      router.replace(
-        buildLoginUrl(
-          `/vendor/${vendor.id}/reserver?serviceId=${service.id}`,
-        ),
-      );
-    }
-  }, [isAuthenticated, isAuthLoading, router, service.id, vendor.id]);
-
   const isAtClient = service.bookingLocationType === "AT_CLIENT";
-  const vendorSlots = vendor.availability?.slots ?? [];
+
+  useEffect(() => {
+    setSelectedDate(getDateInTimeZone(new Date(), userTimeZone));
+    setSelectedTime(undefined);
+    setSelectedAddress(null);
+    setBookingNotes("");
+    setAvailabilities(null);
+  }, [service.id, userTimeZone]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -125,6 +109,7 @@ export default function BookingPage({ vendor, service }: BookingPageProps) {
     async function loadSlots() {
       try {
         setIsLoadingSlots(true);
+        setSlotsLoadError(null);
         const data = await getServiceAvailableSlots(
           slug,
           tenantId,
@@ -135,10 +120,27 @@ export default function BookingPage({ vendor, service }: BookingPageProps) {
         if (isMounted) {
           setAvailabilities(data);
         }
-      } catch {
+      } catch (error) {
         if (isMounted) {
           setAvailabilities(null);
-          toast.error("Impossible de charger les créneaux.");
+          const status =
+            error && typeof error === "object" && "status" in error
+              ? Number((error as { status?: number }).status)
+              : undefined;
+
+          if (status === 401) {
+            setSlotsLoadError("Connectez-vous pour voir les créneaux disponibles.");
+            toast.error("Veuillez vous connecter pour réserver.");
+          } else if (status === 404) {
+            setSlotsLoadError("Aucun créneau trouvé pour ce service.");
+          } else {
+            setSlotsLoadError(null);
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : "Impossible de charger les créneaux.",
+            );
+          }
         }
       } finally {
         if (isMounted) {
@@ -281,63 +283,22 @@ export default function BookingPage({ vendor, service }: BookingPageProps) {
     user?.email,
   ]);
 
-  if (!isAuthLoading && !isAuthenticated) {
-    return null;
-  }
-
-  return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 pb-28 pt-4">
-      <div className="flex items-center gap-3">
-        <Link
-          href={`/vendor/${vendor.id}?serviceId=${service.id}`}
-          className="text-sm font-medium text-black/60 hover:text-black"
-        >
-          ← Retour
-        </Link>
-      </div>
-
-      <div>
-        <h1 className="text-2xl font-bold" style={{ color: TEXT_COLOR }}>
-          Réserver — {service.name}
-        </h1>
-        <p className="mt-1 text-sm text-black/60">{vendor.name}</p>
-      </div>
-
-      {isAtClient ? (
-        <AtClientAddressSearch
-          selectedAddress={selectedAddress}
-          onSelectedAddressChange={setSelectedAddress}
-          bookingNotes={bookingNotes}
-          onBookingNotesChange={setBookingNotes}
-        />
-      ) : null}
-
-      <BookingCalendar
-        slots={vendorSlots}
-        selectedDate={selectedDate}
-        onDateSelect={handleDateSelect}
-      />
-
-      <BookingTimeSlots
-        slots={localAvailableSlots}
-        selectedTime={selectedTime}
-        onTimeSelect={setSelectedTime}
-        isLoading={isLoadingSlots}
-      />
-
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white p-4">
-        <button
-          type="button"
-          disabled={!canPay}
-          onClick={() => void handlePayPress()}
-          className="mx-auto block w-full max-w-2xl rounded-full py-3 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ backgroundColor: TEXT_COLOR }}
-        >
-          {isCreatingOrder ? "Préparation du paiement..." : "Payer"}
-        </button>
-      </div>
-
-      {paymentModal}
-    </main>
-  );
+  return {
+    isAtClient,
+    selectedDate,
+    selectedTime,
+    selectedAddress,
+    bookingNotes,
+    localAvailableSlots,
+    isLoadingSlots,
+    slotsLoadError,
+    canPay,
+    isCreatingOrder,
+    paymentModal,
+    setSelectedTime,
+    setSelectedAddress,
+    setBookingNotes,
+    handleDateSelect,
+    handlePayPress,
+  };
 }

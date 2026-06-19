@@ -8,6 +8,7 @@ import SettingsSidebar, {
   type SettingsSectionId,
 } from "@/components/settings/SettingsSidebar";
 import VendorAddressPanel from "@/components/vendor/address/VendorAddressPanel";
+import VendorAvailabilitiesPanel from "@/components/vendor/availabilities/VendorAvailabilitiesPanel";
 import VendorProfileForm from "@/components/vendor/profile/VendorProfileForm";
 import SettingsVendorLinkPanel from "@/components/settings/vendor/SettingsVendorLinkPanel";
 import SettingsVendorPayoutPanel from "@/components/settings/vendor/SettingsVendorPayoutPanel";
@@ -69,13 +70,7 @@ export default function SettingsPage() {
       case "vendor-profile":
         return <VendorProfileForm showTitle />;
       case "vendor-availabilities":
-        return (
-          <SettingsVendorLinkPanel
-            title="Disponibilités"
-            description="Configurez vos créneaux de réservation."
-            href="/pro/disponibilites"
-          />
-        );
+        return <VendorAvailabilitiesPanel showTitle />;
       case "vendor-address":
         return <VendorAddressPanel showTitle />;
       case "vendor-payout":

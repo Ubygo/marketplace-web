@@ -1,10 +1,6 @@
-import VendorPlaceholderPage from "@/components/vendor/VendorPlaceholderPage";
+import { PRO_SETTINGS_AVAILABILITIES_URL } from "@/lib/settings-url";
+import { redirect } from "next/navigation";
 
-export default function ProAvailabilitiesPage() {
-  return (
-    <VendorPlaceholderPage
-      title="Disponibilités"
-      description="Configurez vos créneaux de réservation."
-    />
-  );
+export default function ProDisponibilitesRedirectPage() {
+  redirect(PRO_SETTINGS_AVAILABILITIES_URL);
 }

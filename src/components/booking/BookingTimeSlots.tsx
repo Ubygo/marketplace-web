@@ -16,6 +16,8 @@ interface BookingTimeSlotsProps {
   selectedTime?: string;
   onTimeSelect: (time: string) => void;
   isLoading?: boolean;
+  compact?: boolean;
+  emptyMessage?: string;
 }
 
 export default function BookingTimeSlots({
@@ -23,6 +25,8 @@ export default function BookingTimeSlots({
   selectedTime,
   onTimeSelect,
   isLoading = false,
+  compact = false,
+  emptyMessage = "Aucun créneau disponible pour cette date.",
 }: BookingTimeSlotsProps) {
   if (isLoading) {
     return (
@@ -35,17 +39,22 @@ export default function BookingTimeSlots({
   if (slots.length === 0) {
     return (
       <div className="py-8 text-center text-sm text-black/60">
-        Aucun créneau disponible pour cette date.
+        {emptyMessage}
       </div>
     );
   }
 
   return (
     <section>
-      <h3 className="mb-3 text-base font-semibold" style={{ color: TEXT_COLOR }}>
+      <h3
+        className={`mb-3 font-semibold ${compact ? "text-sm" : "text-base"}`}
+        style={{ color: TEXT_COLOR }}
+      >
         Choisir un horaire
       </h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div
+        className={`grid gap-2 ${compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}
+      >
         {slots.map((slot) => {
           const isSelected = selectedTime === slot.value;
           const isDisabled = !slot.available;

@@ -1,5 +1,6 @@
+import { PRO_SETTINGS_AVAILABILITIES_URL } from "@/lib/settings-url";
 import { redirect } from "next/navigation";
 
 export default function VendorDisponibilitesRedirectPage() {
-  redirect("/pro/disponibilites");
+  redirect(PRO_SETTINGS_AVAILABILITIES_URL);
 }

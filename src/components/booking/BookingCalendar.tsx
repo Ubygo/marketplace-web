@@ -1,21 +1,20 @@
 "use client";
 
-import { TEXT_COLOR } from "@/constants/theme";
-import {
-  addDays,
-  formatDateToYYYYMMDD,
-  getActiveWeekDays,
-  getWeekdayLabel,
-  isSameDay,
-} from "@/lib/booking-datetime";
+import { getActiveWeekDays } from "@/lib/booking-datetime";
 import type { VendorAvailabilitySlot } from "@/types/vendor";
+import { addMonths, startOfDay } from "date-fns";
+import { fr } from "date-fns/locale";
 import { useMemo } from "react";
+import { DayPicker, type Matcher } from "react-day-picker";
+import "react-day-picker/style.css";
+import "./booking-calendar.css";
 
 interface BookingCalendarProps {
   slots: VendorAvailabilitySlot[];
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
   monthsAhead?: number;
+  compact?: boolean;
 }
 
 export default function BookingCalendar({
@@ -23,64 +22,51 @@ export default function BookingCalendar({
   selectedDate,
   onDateSelect,
   monthsAhead = 3,
+  compact = false,
 }: BookingCalendarProps) {
   const activeWeekDays = useMemo(() => getActiveWeekDays(slots), [slots]);
-  const today = useMemo(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  }, []);
+  const today = useMemo(() => startOfDay(new Date()), []);
+  const maxDate = useMemo(
+    () => addMonths(today, monthsAhead),
+    [monthsAhead, today],
+  );
+  const hasWeekdayFilter = activeWeekDays.size > 0;
 
-  const maxDate = useMemo(() => {
-    const end = new Date(today);
-    end.setMonth(end.getMonth() + monthsAhead);
-    return end;
-  }, [monthsAhead, today]);
+  const disabledDays = useMemo(() => {
+    const matchers: Matcher[] = [{ before: today }, { after: maxDate }];
 
-  const days = useMemo(() => {
-    const result: Date[] = [];
-    let current = new Date(today);
-
-    while (current <= maxDate) {
-      if (activeWeekDays.size === 0 || activeWeekDays.has(current.getDay())) {
-        result.push(new Date(current));
-      }
-      current = addDays(current, 1);
+    if (hasWeekdayFilter) {
+      matchers.push((date) => !activeWeekDays.has(date.getDay()));
     }
 
-    return result;
-  }, [activeWeekDays, maxDate, today]);
+    return matchers;
+  }, [activeWeekDays, hasWeekdayFilter, maxDate, today]);
 
   return (
-    <section>
-      <h3 className="mb-3 text-base font-semibold" style={{ color: TEXT_COLOR }}>
+    <section className="w-full">
+      <h3
+        className={`mb-3 font-semibold text-black/80 ${compact ? "text-sm" : "text-base"}`}
+      >
         Choisir une date
       </h3>
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {days.map((day) => {
-          const isSelected = isSameDay(day, selectedDate);
-          const dateKey = formatDateToYYYYMMDD(day);
-
-          return (
-            <button
-              key={dateKey}
-              type="button"
-              onClick={() => onDateSelect(day)}
-              className="min-w-[72px] shrink-0 rounded-xl border px-3 py-3 text-center transition-colors"
-              style={{
-                borderColor: isSelected ? TEXT_COLOR : "rgba(0,0,0,0.08)",
-                backgroundColor: isSelected ? TEXT_COLOR : "#fff",
-                color: isSelected ? "#fff" : TEXT_COLOR,
-              }}
-            >
-              <span className="block text-xs opacity-80">
-                {getWeekdayLabel(day).slice(0, 3)}
-              </span>
-              <span className="block text-lg font-semibold">
-                {day.getDate()}
-              </span>
-            </button>
-          );
-        })}
+      <div className={compact ? "w-full py-1" : "w-full py-2"}>
+        <DayPicker
+          mode="single"
+          locale={fr}
+          weekStartsOn={1}
+          navLayout="around"
+          selected={selectedDate}
+          onSelect={(date) => {
+            if (date) {
+              onDateSelect(date);
+            }
+          }}
+          disabled={disabledDays}
+          startMonth={today}
+          endMonth={maxDate}
+          showOutsideDays={false}
+          className={`booking-calendar ${compact ? "booking-calendar--compact" : ""}`}
+        />
       </div>
     </section>
   );

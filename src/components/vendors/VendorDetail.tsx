@@ -2,6 +2,7 @@
 
 import VendorAboutTab from "@/components/vendors/VendorAboutTab";
 import VendorBookingMobileBar from "@/components/vendors/VendorBookingMobileBar";
+import VendorBookingOverlay from "@/components/vendors/booking/VendorBookingOverlay";
 import VendorBookingSidebar from "@/components/vendors/VendorBookingSidebar";
 import VendorDetailHeader from "@/components/vendors/VendorDetailHeader";
 import VendorDetailTabs, {
@@ -12,11 +13,12 @@ import VendorGalleryDesktop from "@/components/vendors/VendorGalleryDesktop";
 import VendorGalleryTab from "@/components/vendors/VendorGalleryTab";
 import VendorReviewsSection from "@/components/vendors/VendorReviewsSection";
 import VendorServicesTab from "@/components/vendors/VendorServicesTab";
+import { useBookingFlow } from "@/hooks/useBookingFlow";
 import { getVendorPageGalleryImages } from "@/lib/vendor-display";
 import type { Category } from "@/types/category";
 import type { Service } from "@/types/service";
 import type { Vendor } from "@/types/vendor";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface VendorDetailProps {
   vendor: Vendor;
@@ -25,6 +27,7 @@ interface VendorDetailProps {
   currency: string;
   tenantId: string;
   initialServiceId?: string;
+  initialBookMode?: boolean;
 }
 
 function getInitialServiceId(
@@ -52,6 +55,7 @@ export default function VendorDetail({
   currency,
   tenantId,
   initialServiceId,
+  initialBookMode = false,
 }: VendorDetailProps) {
   const hasServices = services.length > 0;
   const hasGalleryImages = vendor.images.length > 0;
@@ -59,6 +63,28 @@ export default function VendorDetail({
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(() =>
     getInitialServiceId(services, initialServiceId),
   );
+  const [bookingServiceId, setBookingServiceId] = useState<string | null>(() =>
+    initialBookMode && initialServiceId ? initialServiceId : null,
+  );
+
+  const handleStartSlotBooking = useCallback((serviceId: string) => {
+    setBookingServiceId(serviceId);
+    setSelectedServiceId(serviceId);
+  }, []);
+
+  const handleExitBooking = useCallback(() => {
+    setBookingServiceId(null);
+  }, []);
+
+  const handleSelectService = useCallback((serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    setBookingServiceId(null);
+  }, []);
+
+  const { handleBook, isLoading, isStripeEnabled, paymentModal } =
+    useBookingFlow(vendor.id, {
+      onStartSlotBooking: handleStartSlotBooking,
+    });
 
   const galleryImages = useMemo(
     () => getVendorPageGalleryImages(vendor, services, selectedServiceId),
@@ -68,6 +94,17 @@ export default function VendorDetail({
   const [selectedTab, setSelectedTab] = useState<VendorDetailTab>(() =>
     initialServiceId && hasServices ? "services" : "about",
   );
+
+  useEffect(() => {
+    console.log("[VendorDetail] disponibilités vendeur", {
+      vendorId: vendor.id,
+      vendorName: vendor.name,
+      availability: vendor.availability,
+      slots: vendor.availability?.slots ?? [],
+      activeSlots:
+        vendor.availability?.slots?.filter((slot) => slot.active) ?? [],
+    });
+  }, [vendor]);
 
   useEffect(() => {
     if (!hasServices && selectedTab === "services") {
@@ -85,6 +122,13 @@ export default function VendorDetail({
     const nextServiceId = getInitialServiceId(services, initialServiceId);
     setSelectedServiceId(nextServiceId);
   }, [services, initialServiceId]);
+
+  useEffect(() => {
+    if (initialBookMode && initialServiceId) {
+      setBookingServiceId(initialServiceId);
+      setSelectedServiceId(initialServiceId);
+    }
+  }, [initialBookMode, initialServiceId]);
 
   useEffect(() => {
     if (!initialServiceId || !hasServices) return;
@@ -124,7 +168,7 @@ export default function VendorDetail({
                 categories={categories}
                 currency={currency}
                 selectedServiceId={selectedServiceId}
-                onSelectService={setSelectedServiceId}
+                onSelectService={handleSelectService}
               />
             ) : null}
             {selectedTab === "gallery" ? (
@@ -169,18 +213,40 @@ export default function VendorDetail({
             services={services}
             currency={currency}
             selectedServiceId={selectedServiceId}
-            onSelectService={setSelectedServiceId}
+            bookingServiceId={bookingServiceId}
+            onSelectService={handleSelectService}
+            onExitBooking={handleExitBooking}
+            onBook={(serviceId) => void handleBook(serviceId)}
+            isBookingLoading={isLoading}
+            isStripeEnabled={isStripeEnabled}
+            directPaymentModal={paymentModal}
           />
         </aside>
       </div>
 
-      {hasServices ? (
+      {hasServices && !bookingServiceId ? (
         <VendorBookingMobileBar
-          vendorId={vendor.id}
           services={services}
           currency={currency}
           selectedServiceId={selectedServiceId}
+          onBook={(serviceId) => void handleBook(serviceId)}
+          isBookingLoading={isLoading}
+          isStripeEnabled={isStripeEnabled}
         />
+      ) : null}
+
+      {bookingServiceId ? (
+        <VendorBookingOverlay
+          vendor={vendor}
+          services={services}
+          currency={currency}
+          bookingServiceId={bookingServiceId}
+          onExitBooking={handleExitBooking}
+        />
+      ) : null}
+
+      {!bookingServiceId ? (
+        <div className="lg:hidden">{paymentModal}</div>
       ) : null}
     </main>
   );

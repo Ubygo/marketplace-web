@@ -1,6 +1,34 @@
 import { authenticatedFetch } from "@/lib/authenticated-fetch";
-import type { Vendor } from "@/types/vendor";
 import type { Service } from "@/types/service";
+import type { Vendor } from "@/types/vendor";
+
+export async function fetchPublicVendorById(
+  tenantId: string,
+  vendorId: string,
+): Promise<Vendor | null> {
+  const res = await fetch(`/api/public/vendors/${vendorId}`, {
+    headers: {
+      Accept: "application/json",
+      "X-Tenant-Id": tenantId,
+    },
+    cache: "no-store",
+  });
+
+  if (res.status === 404) {
+    return null;
+  }
+
+  if (!res.ok) {
+    throw new Error("Impossible de charger le prestataire.");
+  }
+
+  const payload = await res.json();
+  if (payload && typeof payload === "object" && "data" in payload) {
+    return (payload as { data: Vendor }).data;
+  }
+
+  return payload as Vendor;
+}
 
 export async function fetchVendorByIdClient(
   slug: string,

@@ -1,3 +1,5 @@
+import { apiWeekDayToJsDay } from "@/lib/availability-weekday";
+
 const WEEKDAY_LABELS = [
   "Dimanche",
   "Lundi",
@@ -124,9 +126,7 @@ export function getActiveWeekDays(
 
   for (const slot of slots) {
     if (slot.active) {
-      // API uses 1=Monday..7=Sunday, JS uses 0=Sunday..6=Saturday
-      const jsDay = slot.weekDay === 7 ? 0 : slot.weekDay;
-      activeDays.add(jsDay);
+      activeDays.add(apiWeekDayToJsDay(slot.weekDay));
     }
   }
 

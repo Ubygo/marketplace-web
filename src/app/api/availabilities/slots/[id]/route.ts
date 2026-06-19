@@ -2,29 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
-export async function GET(request: NextRequest) {
-  const tenantId = request.headers.get("x-tenant-id");
-  const authorization = request.headers.get("authorization");
-
-  if (!tenantId || !authorization) {
-    return NextResponse.json({ message: "Non authentifié." }, { status: 401 });
-  }
-
-  const res = await fetch(`${API_BASE_URL}/availabilities`, {
-    headers: {
-      Accept: "application/json",
-      "X-Tenant-Id": tenantId,
-      Authorization: authorization,
-    },
-  });
-
-  const payload = await res.json().catch(() => ({}));
-  return NextResponse.json(payload, { status: res.status });
+interface RouteContext {
+  params: Promise<{ id: string }>;
 }
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest, context: RouteContext) {
   const tenantId = request.headers.get("x-tenant-id");
   const authorization = request.headers.get("authorization");
+  const { id } = await context.params;
 
   if (!tenantId || !authorization) {
     return NextResponse.json({ message: "Non authentifié." }, { status: 401 });
@@ -32,8 +17,8 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
 
-  const res = await fetch(`${API_BASE_URL}/availabilities`, {
-    method: "POST",
+  const res = await fetch(`${API_BASE_URL}/availabilities/slots/${id}`, {
+    method: "PATCH",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -42,6 +27,32 @@ export async function POST(request: NextRequest) {
     },
     body: JSON.stringify(body),
   });
+
+  const payload = await res.json().catch(() => ({}));
+  return NextResponse.json(payload, { status: res.status });
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const tenantId = request.headers.get("x-tenant-id");
+  const authorization = request.headers.get("authorization");
+  const { id } = await context.params;
+
+  if (!tenantId || !authorization) {
+    return NextResponse.json({ message: "Non authentifié." }, { status: 401 });
+  }
+
+  const res = await fetch(`${API_BASE_URL}/availabilities/slots/${id}`, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      "X-Tenant-Id": tenantId,
+      Authorization: authorization,
+    },
+  });
+
+  if (res.status === 204) {
+    return new NextResponse(null, { status: 204 });
+  }
 
   const payload = await res.json().catch(() => ({}));
   return NextResponse.json(payload, { status: res.status });

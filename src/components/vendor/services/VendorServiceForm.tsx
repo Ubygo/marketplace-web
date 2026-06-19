@@ -19,6 +19,7 @@ import { useVendor } from "@/contexts/VendorContext";
 import { hasConfiguredAvailabilities } from "@/lib/availabilities-client";
 import { fetchCategoriesClient } from "@/lib/categories-client";
 import { fetchMyLocations } from "@/lib/locations-client";
+import { PRO_SETTINGS_AVAILABILITIES_URL } from "@/lib/settings-url";
 import { fetchServiceById } from "@/lib/services-me-client";
 import type { Category } from "@/types/category";
 import type { CreateServiceRequest } from "@/types/service";
@@ -231,7 +232,7 @@ export default function VendorServiceForm({ serviceId }: VendorServiceFormProps)
       toast.error("Configurez vos disponibilités avant d'activer ce mode.", {
         action: {
           label: "Configurer",
-          onClick: () => router.push("/pro/disponibilites"),
+          onClick: () => router.push(PRO_SETTINGS_AVAILABILITIES_URL),
         },
       });
     }

@@ -51,6 +51,64 @@ function extractPayload<T>(payload: unknown): T {
   return payload as T;
 }
 
+function normalizeAvailableSlot(raw: unknown): AvailableSlot | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const slot = raw as Record<string, unknown>;
+  const startTime = slot.startTime ?? slot.start;
+  const endTime = slot.endTime ?? slot.end;
+
+  if (typeof startTime !== "string" || typeof endTime !== "string") {
+    return null;
+  }
+
+  return {
+    startTime,
+    endTime,
+    utcStart:
+      typeof slot.utcStart === "string"
+        ? slot.utcStart
+        : typeof slot.utc_start === "string"
+          ? slot.utc_start
+          : undefined,
+    utcEnd:
+      typeof slot.utcEnd === "string"
+        ? slot.utcEnd
+        : typeof slot.utc_end === "string"
+          ? slot.utc_end
+          : undefined,
+    available: slot.available !== false,
+  };
+}
+
+function normalizeServiceAvailabilities(payload: unknown): ServiceAvailabilities {
+  const data = extractPayload<Record<string, unknown>>(payload);
+
+  if (!data || typeof data !== "object") {
+    return { date: "", availableSlots: [] };
+  }
+
+  const nestedSlots = data.availableSlots ?? data.slots ?? data.items;
+  const availableSlots = Array.isArray(nestedSlots)
+    ? nestedSlots
+        .map(normalizeAvailableSlot)
+        .filter((slot): slot is AvailableSlot => slot !== null)
+    : [];
+
+  return {
+    date: typeof data.date === "string" ? data.date : "",
+    timezone:
+      typeof data.timezone === "string"
+        ? data.timezone
+        : typeof data.timeZone === "string"
+          ? data.timeZone
+          : undefined,
+    availableSlots,
+  };
+}
+
 export async function fetchServiceById(
   slug: string,
   tenantId: string,
@@ -135,9 +193,25 @@ export async function getServiceAvailableSlots(
   );
 
   if (!res.ok) {
-    throw new Error("Impossible de charger les créneaux.");
+    const body = await res.json().catch(() => ({}));
+    const rawMessage = body?.message;
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.join(" ")
+      : typeof rawMessage === "string"
+        ? rawMessage
+        : res.status === 404
+          ? "Service ou créneaux introuvables."
+          : "Impossible de charger les créneaux.";
+    const error = new Error(message) as Error & { status?: number };
+    error.status = res.status;
+    throw error;
   }
 
   const payload = await res.json();
-  return extractPayload<ServiceAvailabilities>(payload);
+  const normalized = normalizeServiceAvailabilities(payload);
+
+  return {
+    ...normalized,
+    date: normalized.date || date,
+  };
 }

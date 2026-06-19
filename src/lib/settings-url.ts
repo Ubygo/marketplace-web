@@ -25,3 +25,6 @@ export function getProSettingsUrl(section?: SettingsSectionId): string {
 
 export const PRO_SETTINGS_PAYOUT_URL = getProSettingsUrl("vendor-payout");
 export const PRO_SETTINGS_ADDRESS_URL = getProSettingsUrl("vendor-address");
+export const PRO_SETTINGS_AVAILABILITIES_URL = getProSettingsUrl(
+  "vendor-availabilities",
+);

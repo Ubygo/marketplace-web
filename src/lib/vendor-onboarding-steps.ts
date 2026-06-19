@@ -1,5 +1,5 @@
 import type { OnboardingStep, StripeRequirementsResolution } from "@/types/vendor";
-import { PRO_SETTINGS_ADDRESS_URL, PRO_SETTINGS_PAYOUT_URL } from "@/lib/settings-url";
+import { PRO_SETTINGS_ADDRESS_URL, PRO_SETTINGS_AVAILABILITIES_URL, PRO_SETTINGS_PAYOUT_URL } from "@/lib/settings-url";
 
 export type VendorOnboardingStepAction = "link" | "stripe";
 
@@ -30,7 +30,7 @@ const STEP_CONFIG: Record<
   setAvailabilities: {
     title: "Définir vos disponibilités",
     description: "Configurez vos créneaux de réservation",
-    href: "/pro/disponibilites",
+    href: PRO_SETTINGS_AVAILABILITIES_URL,
   },
   provideBankDetails: {
     title: "Informations bancaires",

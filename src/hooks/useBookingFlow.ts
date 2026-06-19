@@ -5,13 +5,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { fetchServiceById } from "@/lib/checkout";
 import { serviceNeedsSlotPicker } from "@/lib/booking-routing";
-import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { usePayment } from "@/hooks/usePayment";
 
-export function useBookingFlow(vendorId: string) {
-  const router = useRouter();
+interface UseBookingFlowOptions {
+  onStartSlotBooking?: (serviceId: string) => void;
+}
+
+export function useBookingFlow(
+  _vendorId: string,
+  options: UseBookingFlowOptions = {},
+) {
+  const { onStartSlotBooking } = options;
   const { user } = useAuth();
   const { slug, tenantId } = useTenant();
   const { isStripeEnabled } = useStripeContext();
@@ -35,9 +41,7 @@ export function useBookingFlow(vendorId: string) {
         const service = await fetchServiceById(slug, tenantId, serviceId);
 
         if (serviceNeedsSlotPicker(service)) {
-          router.push(
-            `/vendor/${vendorId}/reserver?serviceId=${encodeURIComponent(serviceId)}`,
-          );
+          onStartSlotBooking?.(serviceId);
           return;
         }
 
@@ -50,12 +54,11 @@ export function useBookingFlow(vendorId: string) {
     },
     [
       isStripeEnabled,
-      router,
+      onStartSlotBooking,
       slug,
       startPayment,
       tenantId,
       user?.email,
-      vendorId,
     ],
   );
 

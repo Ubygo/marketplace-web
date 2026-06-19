@@ -8,7 +8,7 @@ import { notFound } from "next/navigation";
 
 interface VendorPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ serviceId?: string }>;
+  searchParams: Promise<{ serviceId?: string; book?: string }>;
 }
 
 export async function generateMetadata({
@@ -35,7 +35,7 @@ export async function generateMetadata({
 
 export default async function VendorPage({ params, searchParams }: VendorPageProps) {
   const { id } = await params;
-  const { serviceId } = await searchParams;
+  const { serviceId, book } = await searchParams;
   const config = await getTenantAppConfig();
 
   if (!config) {
@@ -61,6 +61,7 @@ export default async function VendorPage({ params, searchParams }: VendorPagePro
       currency={config.currency}
       tenantId={config.tenantId}
       initialServiceId={serviceId}
+      initialBookMode={book === "1"}
     />
   );
 }
