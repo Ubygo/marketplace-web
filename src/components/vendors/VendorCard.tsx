@@ -5,6 +5,7 @@ import {
   TEXT_COLOR,
 } from "@/constants/theme";
 import { formatPriceFrom } from "@/lib/format-price";
+import { getVendorCoverImageUrl } from "@/lib/vendor-display";
 import type { VendorCardData } from "@/types/vendor";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,13 +22,13 @@ function formatReviewLabel(count: number): string {
 }
 
 export default function VendorCard({ vendor }: VendorCardProps) {
-  const coverImage = vendor.galleryImages[0];
+  const coverImage = getVendorCoverImageUrl(vendor.galleryImages);
 
   return (
     <article className="relative">
       <VendorCardLikeButton vendorId={vendor.id} />
 
-      <Link href={`/vendors/${vendor.id}`} className="block">
+      <Link href={`/vendor/${vendor.id}`} className="block">
         <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl bg-neutral-200 transition-shadow hover:shadow-sm">
           {coverImage ? (
             <Image

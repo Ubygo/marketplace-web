@@ -12,7 +12,7 @@ import VendorGalleryDesktop from "@/components/vendors/VendorGalleryDesktop";
 import VendorGalleryTab from "@/components/vendors/VendorGalleryTab";
 import VendorReviewsSection from "@/components/vendors/VendorReviewsSection";
 import VendorServicesTab from "@/components/vendors/VendorServicesTab";
-import { getVendorGalleryImages } from "@/lib/vendor-display";
+import { getVendorPageGalleryImages } from "@/lib/vendor-display";
 import type { Category } from "@/types/category";
 import type { Service } from "@/types/service";
 import type { Vendor } from "@/types/vendor";
@@ -53,12 +53,16 @@ export default function VendorDetail({
   tenantId,
   initialServiceId,
 }: VendorDetailProps) {
-  const galleryImages = useMemo(() => getVendorGalleryImages(vendor), [vendor]);
   const hasServices = services.length > 0;
   const hasGalleryImages = vendor.images.length > 0;
 
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(() =>
     getInitialServiceId(services, initialServiceId),
+  );
+
+  const galleryImages = useMemo(
+    () => getVendorPageGalleryImages(vendor, services, selectedServiceId),
+    [vendor, services, selectedServiceId],
   );
 
   const [selectedTab, setSelectedTab] = useState<VendorDetailTab>(() =>
@@ -79,10 +83,21 @@ export default function VendorDetail({
 
   useEffect(() => {
     const nextServiceId = getInitialServiceId(services, initialServiceId);
-    if (nextServiceId) {
-      setSelectedServiceId(nextServiceId);
-    }
+    setSelectedServiceId(nextServiceId);
   }, [services, initialServiceId]);
+
+  useEffect(() => {
+    if (!initialServiceId || !hasServices) return;
+
+    const frame = requestAnimationFrame(() => {
+      document.getElementById("vendor-services")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [initialServiceId, hasServices]);
 
   return (
     <main className="flex min-h-full flex-1 flex-col pb-24 lg:pb-10">
@@ -109,6 +124,7 @@ export default function VendorDetail({
                 categories={categories}
                 currency={currency}
                 selectedServiceId={selectedServiceId}
+                onSelectService={setSelectedServiceId}
               />
             ) : null}
             {selectedTab === "gallery" ? (

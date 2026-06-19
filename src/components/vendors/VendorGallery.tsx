@@ -2,9 +2,10 @@
 
 import CategoryIcon from "@/components/categories/CategoryIcon";
 import { TEXT_COLOR } from "@/constants/theme";
+import { getVendorCoverImageIndex } from "@/lib/vendor-display";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface VendorGalleryProps {
   images: string[];
@@ -13,7 +14,21 @@ interface VendorGalleryProps {
 
 export default function VendorGallery({ images, vendorName }: VendorGalleryProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(() =>
+    getVendorCoverImageIndex(images.length),
+  );
+
+  useEffect(() => {
+    const initialIndex = getVendorCoverImageIndex(images.length);
+    setCurrentIndex(initialIndex);
+
+    const container = scrollRef.current;
+    if (!container || initialIndex === 0) {
+      return;
+    }
+
+    container.scrollLeft = container.clientWidth * initialIndex;
+  }, [images]);
 
   const handleScroll = useCallback(() => {
     const container = scrollRef.current;

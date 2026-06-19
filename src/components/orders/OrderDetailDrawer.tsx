@@ -360,7 +360,7 @@ export default function OrderDetailDrawer({
                   <div className="flex items-center gap-3">
                     {order.vendor.id ? (
                       <Link
-                        href={`/vendors/${order.vendor.id}`}
+                        href={`/vendor/${order.vendor.id}`}
                         onClick={onClose}
                         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl transition-opacity hover:opacity-80"
                       >
@@ -443,7 +443,7 @@ export default function OrderDetailDrawer({
                   </div>
                   {showReviewButton && order.vendor.id ? (
                     <Link
-                      href={`/vendors/${order.vendor.id}`}
+                      href={`/vendor/${order.vendor.id}`}
                       onClick={onClose}
                       className={`${ORDER_DRAWER_BUTTON_PRIMARY} mt-3`}
                       style={{ backgroundColor: "var(--tenant-primary)" }}

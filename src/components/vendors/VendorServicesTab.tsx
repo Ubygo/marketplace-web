@@ -1,22 +1,90 @@
 import { formatPrice } from "@/lib/format-price";
-import { SECONDARY_TEXT_COLOR, TEXT_COLOR } from "@/constants/theme";
 import type { Category } from "@/types/category";
 import type { Service } from "@/types/service";
-import Image from "next/image";
 
 interface VendorServicesTabProps {
   services: Service[];
   categories: Category[];
   currency: string;
   selectedServiceId?: string | null;
+  onSelectService?: (serviceId: string) => void;
 }
 
-function getServiceImage(service: Service): string | undefined {
-  const images = service.serviceImages?.length
-    ? service.serviceImages
-    : service.images;
+function ServiceOption({
+  service,
+  currency,
+  selected,
+  onSelect,
+}: {
+  service: Service;
+  currency: string;
+  selected: boolean;
+  onSelect?: () => void;
+}) {
+  const displayCurrency = service.currency
+    ? service.currency.toUpperCase()
+    : currency;
 
-  return [...(images ?? [])].sort((a, b) => a.order - b.order)[0]?.url;
+  const content = (
+    <div className="flex items-start gap-3">
+      {onSelect ? (
+        <span
+          className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+            selected
+              ? "border-[var(--tenant-primary)] bg-[var(--tenant-primary)]"
+              : "border-black/20 bg-white"
+          }`}
+          aria-hidden
+        >
+          {selected ? (
+            <span className="h-1.5 w-1.5 rounded-full bg-white" />
+          ) : null}
+        </span>
+      ) : null}
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm font-semibold leading-snug text-black">
+            {service.name}
+          </p>
+          {service.price > 0 ? (
+            <span className="shrink-0 text-sm font-bold text-black">
+              {formatPrice(service.price, displayCurrency)}
+            </span>
+          ) : null}
+        </div>
+
+        {service.serviceType === "BOOKING" && service.duration ? (
+          <p className="mt-0.5 text-xs text-black/45">{service.duration} min</p>
+        ) : null}
+
+        {selected && service.description ? (
+          <p className="mt-2 text-sm leading-relaxed text-black/60">
+            {service.description}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  if (onSelect) {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={selected}
+        className={`w-full rounded-xl px-3 py-3 text-left transition-colors ${
+          selected
+            ? "bg-[var(--tenant-primary)]/[0.07]"
+            : "hover:bg-black/[0.03]"
+        }`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="rounded-xl px-3 py-3">{content}</div>;
 }
 
 export default function VendorServicesTab({
@@ -24,6 +92,7 @@ export default function VendorServicesTab({
   categories,
   currency,
   selectedServiceId,
+  onSelectService,
 }: VendorServicesTabProps) {
   const grouped = categories
     .map((category) => ({
@@ -41,121 +110,55 @@ export default function VendorServicesTab({
 
   if (grouped.length === 0 && uncategorized.length === 0) {
     return (
-      <p
-        className="py-8 text-center text-sm"
-        style={{ color: SECONDARY_TEXT_COLOR }}
-      >
+      <p className="py-8 text-center text-sm text-black/50">
         Aucun service disponible
       </p>
     );
   }
 
+  const effectiveSelectedId =
+    selectedServiceId ??
+    (services.length > 0 ? services[0].id : null);
+
+  const renderServices = (items: Service[]) => (
+    <div className="flex flex-col gap-0.5">
+      {items.map((service) => (
+        <ServiceOption
+          key={service.id}
+          service={service}
+          currency={currency}
+          selected={service.id === effectiveSelectedId}
+          onSelect={
+            onSelectService
+              ? () => onSelectService(service.id)
+              : undefined
+          }
+        />
+      ))}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-6 py-5">
+    <div id="vendor-services" className="scroll-mt-24 flex flex-col gap-5">
       {grouped.map(({ category, services: categoryServices }) => (
         <section key={category.id}>
-          <h3
-            className="mb-3 text-base font-semibold"
-            style={{ color: TEXT_COLOR }}
-          >
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-black/40">
             {category.displayName}
           </h3>
-          <div className="flex flex-col gap-3">
-            {categoryServices.map((service) => (
-              <ServiceRow
-                key={service.id}
-                service={service}
-                currency={currency}
-                selected={selectedServiceId === service.id}
-              />
-            ))}
-          </div>
+          {renderServices(categoryServices)}
         </section>
       ))}
 
       {uncategorized.length > 0 ? (
         <section>
-          <h3
-            className="mb-3 text-base font-semibold"
-            style={{ color: TEXT_COLOR }}
-          >
-            Autres
-          </h3>
-          <div className="flex flex-col gap-3">
-            {uncategorized.map((service) => (
-              <ServiceRow
-                key={service.id}
-                service={service}
-                currency={currency}
-                selected={selectedServiceId === service.id}
-              />
-            ))}
-          </div>
+          {grouped.length > 0 ? (
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-black/40">
+              Autres
+            </h3>
+          ) : null}
+          {renderServices(uncategorized)}
         </section>
       ) : null}
     </div>
-  );
-}
-
-function ServiceRow({
-  service,
-  currency,
-  selected,
-}: {
-  service: Service;
-  currency: string;
-  selected: boolean;
-}) {
-  const imageUrl = getServiceImage(service);
-  const displayCurrency = service.currency
-    ? service.currency.toUpperCase()
-    : currency;
-
-  return (
-    <article
-      className="flex items-center gap-3 rounded-xl border bg-white p-3"
-      style={{
-        borderColor: selected ? TEXT_COLOR : "rgba(0,0,0,0.05)",
-      }}
-    >
-      {imageUrl ? (
-        <Image
-          src={imageUrl}
-          alt={service.name}
-          width={64}
-          height={64}
-          className="h-16 w-16 shrink-0 rounded-xl object-cover"
-        />
-      ) : (
-        <div
-          className="h-16 w-16 shrink-0 rounded-xl"
-          style={{ backgroundColor: "#F0F0EE" }}
-        />
-      )}
-      <div className="min-w-0 flex-1">
-        <p
-          className="truncate text-sm font-semibold"
-          style={{ color: TEXT_COLOR }}
-        >
-          {service.name}
-        </p>
-        {service.description ? (
-          <p
-            className="mt-1 line-clamp-2 text-xs"
-            style={{ color: SECONDARY_TEXT_COLOR }}
-          >
-            {service.description}
-          </p>
-        ) : null}
-      </div>
-      {service.price > 0 ? (
-        <span
-          className="shrink-0 text-sm font-bold"
-          style={{ color: TEXT_COLOR }}
-        >
-          {formatPrice(service.price, displayCurrency)}
-        </span>
-      ) : null}
-    </article>
   );
 }

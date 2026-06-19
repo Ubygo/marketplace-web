@@ -18,13 +18,12 @@ export default function VendorBookingMobileBar({
   currency,
   selectedServiceId,
 }: VendorBookingMobileBarProps) {
-  const activeServiceId = selectedServiceId ?? services[0]?.id;
   const selectedService =
-    services.find((service) => service.id === activeServiceId) ?? services[0];
+    services.find((service) => service.id === selectedServiceId) ?? services[0];
   const { handleBook, isLoading, isStripeEnabled, paymentModal } =
     useBookingFlow(vendorId);
 
-  if (!selectedService) {
+  if (services.length === 0) {
     return null;
   }
 
@@ -38,17 +37,22 @@ export default function VendorBookingMobileBar({
     <>
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-black/5 bg-white p-4 lg:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
-          {selectedService.price > 0 ? (
-            <p className="min-w-0 flex-1 text-lg font-bold" style={{ color: TEXT_COLOR }}>
-              {formatPrice(selectedService.price, displayCurrency)}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-black">
+              {selectedService.name}
             </p>
-          ) : (
-            <p className="min-w-0 flex-1 text-sm text-black/60">
-              {!isStripeEnabled
-                ? "Paiement indisponible"
-                : "Service gratuit"}
-            </p>
-          )}
+            {selectedService.price > 0 ? (
+              <p className="text-lg font-bold" style={{ color: TEXT_COLOR }}>
+                {formatPrice(selectedService.price, displayCurrency)}
+              </p>
+            ) : (
+              <p className="text-sm text-black/60">
+                {!isStripeEnabled
+                  ? "Paiement indisponible"
+                  : "Service gratuit"}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             disabled={isDisabled}

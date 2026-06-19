@@ -36,7 +36,7 @@ export function useBookingFlow(vendorId: string) {
 
         if (serviceNeedsSlotPicker(service)) {
           router.push(
-            `/vendors/${vendorId}/reserver?serviceId=${encodeURIComponent(serviceId)}`,
+            `/vendor/${vendorId}/reserver?serviceId=${encodeURIComponent(serviceId)}`,
           );
           return;
         }

@@ -1,3 +1,4 @@
+import { normalizeService } from "@/lib/service-display";
 import type { Service } from "@/types/service";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
@@ -30,5 +31,7 @@ export async function fetchServicesByVendorId(
   const payload = (await res.json()) as PaginatedServicesResponse | Service[];
   const services = Array.isArray(payload) ? payload : (payload.data ?? []);
 
-  return services.filter((service) => service.visible !== false);
+  return services
+    .filter((service) => service.visible !== false)
+    .map((service) => normalizeService(service));
 }

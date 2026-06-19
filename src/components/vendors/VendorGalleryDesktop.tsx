@@ -2,8 +2,9 @@
 
 import CategoryIcon from "@/components/categories/CategoryIcon";
 import { TEXT_COLOR } from "@/constants/theme";
+import { getVendorCoverImageIndex } from "@/lib/vendor-display";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface VendorGalleryDesktopProps {
   images: string[];
@@ -14,7 +15,13 @@ export default function VendorGalleryDesktop({
   images,
   vendorName,
 }: VendorGalleryDesktopProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(() =>
+    getVendorCoverImageIndex(images.length),
+  );
+
+  useEffect(() => {
+    setCurrentIndex(getVendorCoverImageIndex(images.length));
+  }, [images]);
 
   if (images.length === 0) {
     return (

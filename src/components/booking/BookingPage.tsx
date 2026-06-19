@@ -67,7 +67,7 @@ export default function BookingPage({ vendor, service }: BookingPageProps) {
     if (!isAuthLoading && !isAuthenticated) {
       router.replace(
         buildLoginUrl(
-          `/vendors/${vendor.id}/reserver?serviceId=${service.id}`,
+          `/vendor/${vendor.id}/reserver?serviceId=${service.id}`,
         ),
       );
     }
@@ -289,7 +289,7 @@ export default function BookingPage({ vendor, service }: BookingPageProps) {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 pb-28 pt-4">
       <div className="flex items-center gap-3">
         <Link
-          href={`/vendors/${vendor.id}?serviceId=${service.id}`}
+          href={`/vendor/${vendor.id}?serviceId=${service.id}`}
           className="text-sm font-medium text-black/60 hover:text-black"
         >
           ← Retour

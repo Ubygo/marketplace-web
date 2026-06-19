@@ -187,7 +187,7 @@ export default function VendorStatsSection({
       </div>
 
       <Link
-        href={`/vendors/${vendorId}`}
+        href={`/vendor/${vendorId}`}
         className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/30"
       >
         <CategoryIcon icon="Ionicons/share-outline" size={16} color="#fff" />

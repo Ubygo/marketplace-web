@@ -1,5 +1,6 @@
 import type { Service } from "@/types/service";
 import type { Vendor, VendorCardData } from "@/types/vendor";
+import { getServiceImageUrls } from "@/lib/service-display";
 
 export function getVendorImageUrl(vendor: Vendor): string | undefined {
   return (
@@ -19,6 +20,50 @@ export function getVendorGalleryImages(vendor: Vendor): string[] {
     .sort((a, b) => a.order - b.order)
     .map((image) => image.url)
     .filter(Boolean);
+}
+
+/** Index de l'image à mettre en avant (2e photo si disponible, sinon la 1re). */
+export function getVendorCoverImageIndex(imageCount: number): number {
+  return imageCount >= 2 ? 1 : 0;
+}
+
+export function getVendorCoverImageUrl(images: string[]): string | undefined {
+  if (images.length === 0) {
+    return undefined;
+  }
+
+  return images[getVendorCoverImageIndex(images.length)];
+}
+
+export function getVendorPageGalleryImages(
+  vendor: Vendor,
+  services: Service[],
+  selectedServiceId?: string | null,
+): string[] {
+  const vendorImages = getVendorGalleryImages(vendor);
+  if (vendorImages.length > 0) {
+    return vendorImages;
+  }
+
+  const selectedService = selectedServiceId
+    ? services.find((service) => service.id === selectedServiceId)
+    : undefined;
+
+  if (selectedService) {
+    const selectedImages = getServiceImageUrls(selectedService);
+    if (selectedImages.length > 0) {
+      return selectedImages;
+    }
+  }
+
+  for (const service of services) {
+    const serviceImages = getServiceImageUrls(service);
+    if (serviceImages.length > 0) {
+      return serviceImages;
+    }
+  }
+
+  return [];
 }
 
 export function getVendorRating(vendor: Vendor): number {

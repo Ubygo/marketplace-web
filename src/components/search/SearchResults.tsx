@@ -92,7 +92,7 @@ function MerchantResultRow({ merchant }: { merchant: SearchMerchant }) {
       title={merchant.name}
       subtitle={merchant.description?.trim() || undefined}
       imageUrl={merchant.vendorImages?.[0]?.url}
-      href={`/vendors/${merchant.id}`}
+      href={`/vendor/${merchant.id}`}
     />
   );
 }
@@ -103,7 +103,7 @@ function ServiceResultRow({ service }: { service: SearchService }) {
       title={service.name}
       subtitle={formatPrice(service.price, service.currency)}
       imageUrl={service.serviceImages?.[0]?.url}
-      href={`/vendors/${service.vendorId}?serviceId=${service.id}`}
+      href={`/vendor/${service.vendorId}?serviceId=${service.id}`}
     />
   );
 }
