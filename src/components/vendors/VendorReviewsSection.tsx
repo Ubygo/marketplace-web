@@ -142,6 +142,12 @@ function ReviewCard({ review }: { review: Review }) {
           </span>
         </div>
 
+        {review.serviceName ? (
+          <p className="mt-2 text-sm text-[var(--tenant-primary)]">
+            Service : {review.serviceName}
+          </p>
+        ) : null}
+
         {review.comment ? (
           <p className="mt-3 text-sm leading-relaxed text-black">
             {review.comment}
@@ -218,23 +224,9 @@ export default function VendorReviewsSection({
 
   const content = (
     <>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        {showTitle ? (
-          <h2 className="text-2xl font-bold text-black">Avis</h2>
-        ) : (
-          <div />
-        )}
-
-        <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
-          <p className="text-sm text-black/70">{total} avis</p>
-          <div className="flex items-center gap-2">
-            <ReviewStars rate={Math.round(rating)} size={16} />
-            <span className="text-lg font-bold text-black">
-              {rating.toFixed(1)}
-            </span>
-          </div>
-        </div>
-      </div>
+      {showTitle ? (
+        <h2 className="mb-6 text-2xl font-bold text-black">Avis</h2>
+      ) : null}
 
       {isLoading ? (
         <div className="flex flex-col gap-4">
@@ -263,16 +255,30 @@ export default function VendorReviewsSection({
 
       {!isLoading && !error && reviews.length > 0 ? (
         <>
-          <div className="mb-8 flex flex-col gap-2.5">
-            {STAR_LEVELS.map((stars) => (
-              <StarRow
-                key={stars}
-                stars={stars}
-                count={starCounts[stars]}
-                total={reviews.length}
-              />
-            ))}
+          <div className="mb-8 rounded-2xl border border-black/10 p-5 md:p-6">
+            <div className="flex flex-col gap-6 md:flex-row md:items-center">
+              <div className="flex flex-col items-center gap-2 md:shrink-0 md:items-start">
+                <span className="text-4xl font-bold text-black">
+                  {rating.toFixed(1)}
+                </span>
+                <ReviewStars rate={Math.round(rating)} size={18} />
+                <p className="text-sm text-black/70">{total} avis</p>
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+                {STAR_LEVELS.map((stars) => (
+                  <StarRow
+                    key={stars}
+                    stars={stars}
+                    count={starCounts[stars]}
+                    total={reviews.length}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
+
+          <h3 className="mb-4 text-lg font-semibold text-black">Avis récents</h3>
 
           <div className="flex flex-col gap-4">
             {reviews.map((review) => (

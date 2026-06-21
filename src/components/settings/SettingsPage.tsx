@@ -10,8 +10,8 @@ import SettingsSidebar, {
 import VendorAddressPanel from "@/components/vendor/address/VendorAddressPanel";
 import VendorAvailabilitiesPanel from "@/components/vendor/availabilities/VendorAvailabilitiesPanel";
 import VendorProfileForm from "@/components/vendor/profile/VendorProfileForm";
-import SettingsVendorLinkPanel from "@/components/settings/vendor/SettingsVendorLinkPanel";
 import SettingsVendorPayoutPanel from "@/components/settings/vendor/SettingsVendorPayoutPanel";
+import SettingsVendorReviewsPanel from "@/components/settings/vendor/SettingsVendorReviewsPanel";
 import SettingsVendorVisibilityPanel from "@/components/settings/vendor/SettingsVendorVisibilityPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildLoginUrl } from "@/lib/auth-url";
@@ -76,14 +76,7 @@ export default function SettingsPage() {
       case "vendor-payout":
         return <SettingsVendorPayoutPanel />;
       case "vendor-reviews":
-        return (
-          <SettingsVendorLinkPanel
-            title="Avis clients"
-            description="Consultez et gérez les avis laissés par vos clients."
-            href="/pro"
-            linkLabel="Voir le tableau de bord"
-          />
-        );
+        return <SettingsVendorReviewsPanel />;
       case "vendor-visibility":
         return <SettingsVendorVisibilityPanel />;
       default:
